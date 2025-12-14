@@ -59,4 +59,6 @@ public abstract class BaseEntity {
             example = "2024-01-25T16:45:00"
     )
     private LocalDateTime deletedAt;
+
+    private String notes;
 }
