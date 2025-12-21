@@ -576,4 +576,14 @@ public class StaticData {
                     ""
             )
     );
+
+    public static List<TradeUpdateDataType> TRADE_UPDATES = List.of(
+            new TradeUpdateDataType(
+                    TradeUpdateEnum.MOVE_SL_TO_BE,
+                    1,
+                    "Move SL to BE",
+                    "",
+                    ""
+            )
+    );
 }
