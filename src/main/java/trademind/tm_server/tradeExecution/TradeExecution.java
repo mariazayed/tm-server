@@ -2,11 +2,13 @@ package trademind.tm_server.tradeExecution;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.*;
+import trademind.tm_server.trade.TradeSteps;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,4 +49,7 @@ public class TradeExecution extends BaseEntity {
     /// ********** Classification **********
     @Column(nullable = false)
     private List<TradeTagEnum> tradeTags;
+
+    @OneToOne(mappedBy = "tradeExecution")
+    private TradeSteps tradeSteps;
 }

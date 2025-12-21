@@ -2,11 +2,13 @@ package trademind.tm_server.tradeTerminate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.ExitReasonEnum;
+import trademind.tm_server.trade.Trade;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,4 +33,7 @@ public class TradeTerminate extends BaseEntity {
 
     @Column(nullable = false)
     private List<ExitReasonEnum> exitReasons;
+
+    @OneToOne(mappedBy = "tradeTermination")
+    private Trade trade;
 }

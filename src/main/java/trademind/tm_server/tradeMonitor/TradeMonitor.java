@@ -2,10 +2,12 @@ package trademind.tm_server.tradeMonitor;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
+import trademind.tm_server.trade.TradeSteps;
 
 
 @Entity
@@ -24,4 +26,7 @@ public class TradeMonitor extends BaseEntity {
 
     @Column(nullable = false)
     private String updates;
+
+    @OneToOne(mappedBy = "tradeMonitoring")
+    private TradeSteps tradeSteps;
 }

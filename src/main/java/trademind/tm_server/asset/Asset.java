@@ -1,12 +1,13 @@
 package trademind.tm_server.asset;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
+import trademind.tm_server.trade.Trade;
+
+import java.util.List;
 
 
 @Entity
@@ -34,4 +35,8 @@ public class Asset extends BaseEntity {
     )
     @Column(nullable = false)
     private String symbol;
+
+    @OneToMany(mappedBy = "asset", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Trade> trades;
+
 }

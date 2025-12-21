@@ -2,11 +2,13 @@ package trademind.tm_server.tradePlan;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.*;
+import trademind.tm_server.trade.Trade;
 
 import java.util.List;
 
@@ -119,4 +121,7 @@ public class TradePlan extends BaseEntity {
     /// ********** Trade Quality and Performance **********
     @Column(nullable = false)
     private ProbabilityEnum expectedProbabilityOfSuccess;
+
+    @OneToOne(mappedBy = "tradePlan")
+    private Trade trade;
 }

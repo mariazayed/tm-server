@@ -13,6 +13,7 @@ public final class AppConstants {
     public static final String DB_TRADE_MONITORING = "trade_monitoring";
     public static final String DB_TRADE_TERMINATIONS = "trade_terminations";
     public static final String DB_TRADE_EVALUATIONS = "trade_evaluations";
+    public static final String DB_TRADE_STEPS = "trade_steps";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";

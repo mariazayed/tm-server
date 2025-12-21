@@ -2,11 +2,13 @@ package trademind.tm_server.tradeEvaluate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.ScoreEnum;
+import trademind.tm_server.trade.Trade;
 
 
 @Entity
@@ -45,4 +47,7 @@ public class TradeEvaluate extends BaseEntity {
 
     @Column(nullable = false)
     private ScoreEnum riskManagement;
+
+    @OneToOne(mappedBy = "tradeEvaluation")
+    private Trade trade;
 }
