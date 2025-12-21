@@ -21,7 +21,7 @@ public class TradeTerminateService {
     @Autowired
     private TradeTerminateMapper mapper;
 
-    private final String tableName = "Trade Terminate";
+    private final String tableName = "Trade Termination";
 
     public TradeTerminateResponse create(NewTradeTerminateRequest trade) {
         TradeTerminate tradePlanEntity = mapper.toEntity(trade);
