@@ -2,6 +2,7 @@ package trademind.tm_server.trade;
 
 import jakarta.persistence.*;
 import lombok.*;
+import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.tradeExecution.TradeExecution;
 import trademind.tm_server.tradeMonitor.TradeMonitor;
@@ -15,7 +16,7 @@ import trademind.tm_server.tradeTerminate.TradeTerminate;
 @Builder
 @EqualsAndHashCode(callSuper = false)
 @Table(name = AppConstants.DB_TRADE_STEPS)
-public class TradeSteps {
+public class TradeSteps extends BaseEntity {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "trade_execution_id", referencedColumnName = "id")
     private TradeExecution tradeExecution;

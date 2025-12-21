@@ -8,7 +8,7 @@ import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.ExitReasonEnum;
-import trademind.tm_server.trade.Trade;
+import trademind.tm_server.trade.TradeSteps;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,5 +35,5 @@ public class TradeTerminate extends BaseEntity {
     private List<ExitReasonEnum> exitReasons;
 
     @OneToOne(mappedBy = "tradeTermination")
-    private Trade trade;
+    private TradeSteps tradeSteps;
 }
