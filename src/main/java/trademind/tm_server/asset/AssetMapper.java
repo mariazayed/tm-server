@@ -1,9 +1,9 @@
 package trademind.tm_server.asset;
 
 import org.mapstruct.Mapper;
-import trader.beast.traderBeast.asset.dto.AssetResponse;
-import trader.beast.traderBeast.asset.dto.NewAssetRequest;
-import trader.beast.traderBeast.asset.dto.UpdateAssetRequest;
+import trademind.tm_server.asset.dto.AssetResponse;
+import trademind.tm_server.asset.dto.NewAssetRequest;
+import trademind.tm_server.asset.dto.UpdateAssetRequest;
 
 @Mapper(componentModel = "spring")
 public interface AssetMapper {

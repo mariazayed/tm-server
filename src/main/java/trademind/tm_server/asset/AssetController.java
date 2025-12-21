@@ -10,12 +10,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import trader.beast.traderBeast.asset.dto.AssetResponse;
-import trader.beast.traderBeast.asset.dto.AssetSearchRequest;
-import trader.beast.traderBeast.asset.dto.NewAssetRequest;
-import trader.beast.traderBeast.asset.dto.UpdateAssetRequest;
-import trader.beast.traderBeast.base.SearchResponse;
-import trader.beast.traderBeast.constants.AppConstants;
+import trademind.tm_server.asset.dto.AssetResponse;
+import trademind.tm_server.asset.dto.AssetSearchRequest;
+import trademind.tm_server.asset.dto.NewAssetRequest;
+import trademind.tm_server.asset.dto.UpdateAssetRequest;
+import trademind.tm_server.base.SearchResponse;
+import trademind.tm_server.constants.AppConstants;
 
 import java.util.List;
 
