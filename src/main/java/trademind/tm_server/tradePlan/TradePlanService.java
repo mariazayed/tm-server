@@ -21,6 +21,8 @@ public class TradePlanService {
     @Autowired
     private TradePlanMapper mapper;
 
+    private final String tableName = "Trade Plan";
+
     public TradePlanResponse create(NewTradePlanRequest trade) {
         TradePlan tradePlanEntity = mapper.toEntity(trade);
         TradePlan savedTradePlan = repository.save(tradePlanEntity);
@@ -37,19 +39,19 @@ public class TradePlanService {
 
     public TradePlanResponse getOneById(Long id) {
         TradePlan tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Trade Plan", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         return mapper.toResponse(tradePlan);
     }
 
     public TradePlan getOneByIdAsEntity(Long id) {
         return repository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Trade Plan", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
     }
 
     public TradePlanResponse update(Long id, UpdateTradePlanRequest tradeDetails) {
         TradePlan tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Trade Plan", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         TradePlan tradePlanEntity = mapper.toEntity(tradeDetails);
         TradePlan savedTradePlan = repository.save(tradePlanEntity);
@@ -58,10 +60,10 @@ public class TradePlanService {
 
     public TradePlanResponse undoDelete(Long id) {
         TradePlan tradePlan = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Trade Plan", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         if (tradePlan.getDeletedAt() == null) {
-            throw new BadRequestException("Trade Plan with id " + id + " is not deleted");
+            throw new BadRequestException(tableName + " with id " + id + " is not deleted");
         }
 
         // Undo the delete
@@ -74,7 +76,7 @@ public class TradePlanService {
 
     public void delete(Long id) {
         TradePlan tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Trade Plan", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
         tradePlan.setDeletedAt(LocalDateTime.now());
         repository.save(tradePlan);
     }
