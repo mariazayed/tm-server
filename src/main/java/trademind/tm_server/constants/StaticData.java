@@ -429,10 +429,151 @@ public class StaticData {
 
 
     public static List<TakeProfitPlacementReasonDataType> TAKE_PROFIT_PLACEMENT_REASONS = List.of(
-            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.FVG_FILL, 1, "", "", ""),
-            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.LIQUIDITY_SWEEP, 1, "", "", ""),
-            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.MAJOR_LEVEL, 1, "", "", ""),
-            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.RISK_MULTIPLE_ACHIEVED, 1, "", "", ""),
-            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.OPPOSING_OB, 1, "", "", "")
+            new TakeProfitPlacementReasonDataType(
+                    TakeProfitPlacementReasonEnum.FVG_FILL,
+                    1,
+                    "FVG Fill",
+                    "",
+                    ""
+            ),
+            new TakeProfitPlacementReasonDataType(
+                    TakeProfitPlacementReasonEnum.LIQUIDITY_SWEEP,
+                    1,
+                    "Liquidity Sweep",
+                    "",
+                    ""
+            ),
+            new TakeProfitPlacementReasonDataType(
+                    TakeProfitPlacementReasonEnum.MAJOR_LEVEL,
+                    1,
+                    "Major Level",
+                    "",
+                    ""
+            ),
+            new TakeProfitPlacementReasonDataType(
+                    TakeProfitPlacementReasonEnum.RISK_MULTIPLE_ACHIEVED,
+                    1,
+                    "Risk Multiple Achieved",
+                    "",
+                    ""
+            ),
+            new TakeProfitPlacementReasonDataType(
+                    TakeProfitPlacementReasonEnum.OPPOSING_OB,
+                    1,
+                    "Opposing OB",
+                    "",
+                    ""
+            )
+    );
+
+    public static List<EntryTypeDataType> ENTRY_TYPES = List.of(
+            new EntryTypeDataType(
+                    EntryTypeEnum.INSTANT,
+                    1,
+                    "Instant",
+                    "",
+                    ""
+
+            ),
+            new EntryTypeDataType(
+                    EntryTypeEnum.LIMIT,
+                    2,
+                    "Limit",
+                    "",
+                    ""
+
+            ),
+            new EntryTypeDataType(
+                    EntryTypeEnum.CONFIRMATION,
+                    3,
+                    "Confirmation",
+                    "",
+                    ""
+
+            ),
+            new EntryTypeDataType(
+                    EntryTypeEnum.BREAKOUT,
+                    4,
+                    "Breakout",
+                    "",
+                    ""
+
+            )
+    );
+
+    public static List<SessionDataType> SESSIONS = List.of(
+            new SessionDataType(
+                    SessionEnum.NEW_YORK_SESSION,
+                    1,
+                    "New York Session",
+                    "",
+                    ""
+            ),
+            new SessionDataType(
+                    SessionEnum.LONDON_SESSION,
+                    2,
+                    "London Session",
+                    "",
+                    ""
+            ),
+            new SessionDataType(
+                    SessionEnum.ASIAN_SESSION,
+                    3,
+                    "Asia Session",
+                    "",
+                    ""
+            )
+    );
+
+    public static List<TradeTagDataType> TRADE_TAGS = List.of(
+            new TradeTagDataType(
+                    TradeTagEnum.TREND_TRADE,
+                    1,
+                    "Trend Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.REVERSAL_TRADE,
+                    2,
+                    "Reversal Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.LIQUIDITY_SWEEP_TRADE,
+                    3,
+                    "Liquidity Sweep Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.BREAKOUT_TRADE,
+                    4,
+                    "Breakout Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.FAILED_BREAKOUT_TRADE,
+                    5,
+                    "Failed Breakout Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.SMC_TRADE,
+                    6,
+                    "SMC Trade",
+                    "",
+                    ""
+            ),
+            new TradeTagDataType(
+                    TradeTagEnum.NEWS_TRADE,
+                    7,
+                    "News Trade",
+                    "",
+                    ""
+            )
     );
 }
