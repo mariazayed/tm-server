@@ -1,6 +1,5 @@
 package trademind.tm_server.tradeMonitor.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,14 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateTradeMonitorRequest {
-    @NotNull(message = "Required")
     private String marketBehaviorAfterEntry;
-
-    @NotNull(message = "Required")
     private boolean anyPlanDeviation;
-
-    @NotNull(message = "Required")
     private String updates;
-
     private String notes;
 }

@@ -586,4 +586,49 @@ public class StaticData {
                     ""
             )
     );
+
+    public static List<ExitReasonDataType> EXIT_REASONS = List.of(
+            new ExitReasonDataType(
+                    ExitReasonEnum.TP_HIT,
+                    1,
+                    "TP Hit",
+                    "",
+                    ""
+            ),
+            new ExitReasonDataType(
+                    ExitReasonEnum.SL_HIT,
+                    2,
+                    "SL Hit",
+                    "",
+                    ""
+            ),
+            new ExitReasonDataType(
+                    ExitReasonEnum.MANUAL_EXIT,
+                    3,
+                    "Manual Exit",
+                    "",
+                    ""
+            ),
+            new ExitReasonDataType(
+                    ExitReasonEnum.STRUCTURE_BREAK,
+                    4,
+                    "Structure Break",
+                    "",
+                    ""
+            ),
+            new ExitReasonDataType(
+                    ExitReasonEnum.PSYCHOLOGICAL_EXIT,
+                    5,
+                    "Psychological Exit",
+                    "",
+                    ""
+            ),
+            new ExitReasonDataType(
+                    ExitReasonEnum.NEWS_IMPACT,
+                    6,
+                    "News Impact",
+                    "",
+                    ""
+            )
+    );
 }

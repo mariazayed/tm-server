@@ -19,4 +19,6 @@ public class NewTradeMonitorRequest {
 
     @NotNull(message = "Required")
     private String updates;
+
+    private String notes;
 }
