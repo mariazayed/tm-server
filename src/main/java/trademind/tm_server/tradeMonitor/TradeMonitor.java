@@ -14,7 +14,7 @@ import trademind.tm_server.constants.AppConstants;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-@Table(name = AppConstants.DB_TRADE_PLANS)
+@Table(name = AppConstants.DB_TRADE_MONITORING)
 public class TradeMonitor extends BaseEntity {
     @Column(nullable = false)
     private String marketBehaviorAfterEntry;

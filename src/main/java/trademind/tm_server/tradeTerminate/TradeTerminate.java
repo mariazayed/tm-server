@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-@Table(name = AppConstants.DB_TRADE_PLANS)
+@Table(name = AppConstants.DB_TRADE_TERMINATIONS)
 public class TradeTerminate extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime exitedAt;

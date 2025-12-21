@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-@Table(name = AppConstants.DB_TRADE_PLANS)
+@Table(name = AppConstants.DB_TRADE_EXECUTIONS)
 public class TradeExecution extends BaseEntity {
     /// ********** Timing & Session **********
     @Column(nullable = false)

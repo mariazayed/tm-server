@@ -6,28 +6,24 @@ public final class AppConstants {
     }
 
     // Database tables names
-//    public static final String DB_STRATEGY = "strategies";
-//    public static final String DB_PRICE_TRIGGERS = "price_triggers";
-//    public static final String DB_SECTORS = "sectors";
     public static final String DB_ASSETS = "assets";
-    //    public static final String DB_TRADES_DETAILS = "trades_details";
-//    public static final String DB_TRADES = "trades";
+    public static final String DB_TRADES = "trades";
     public static final String DB_TRADE_PLANS = "trade_plans";
-    //    public static final String DB_STOP_LOSS_STRATEGY = "stop_loss_strategy";
-//    public static final String DB_TAKE_PROFIT_STRATEGY = "take_profit_strategy";
-//
+    public static final String DB_TRADE_EXECUTIONS = "trade_executions";
+    public static final String DB_TRADE_MONITORING = "trade_monitoring";
+    public static final String DB_TRADE_TERMINATIONS = "trade_terminations";
+    public static final String DB_TRADE_EVALUATIONS = "trade_evaluations";
+
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
-    //    public static final String URL_STRATEGY = API_VERSION + "/strategy";
-//    public static final String URL_PRICE_TRIGGER = API_VERSION + "/priceTrigger";
-//    public static final String URL_SECTOR = API_VERSION + "/sector";
-//    public static final String URL_TRADE_DETAILS = API_VERSION + "/tradeDetails";
-//    public static final String URL_TRADE = API_VERSION + "/trade";
     public static final String URL_ASSET = API_VERSION + "/asset";
-    //    public static final String URL_STOP_LOSS_STRATEGY = API_VERSION + "/stopLossStrategy";
-//    public static final String URL_TAKE_PROFIT_STRATEGY = API_VERSION + "/takeProfitStrategy";
-//
-//
+    public static final String URL_TRADE = API_VERSION + "/trade";
+    public static final String URL_TRADE_PLAN = API_VERSION + "/tradePlan";
+    public static final String URL_TRADE_EXECUTION = API_VERSION + "/tradeExecution";
+    public static final String URL_TRADE_MONITORING = API_VERSION + "/tradeMonitoring";
+    public static final String URL_TRADE_TERMINATION = API_VERSION + "/tradeTermination";
+    public static final String URL_TRADE_EVALUATION = API_VERSION + "/tradeEvaluation";
+
     // Sub-URL Endpoints
     public static final String SUB_URL_SEARCH = "/search";
     public static final String SUB_URL_UNDO_DELETE = "/undoDelete/{id}";

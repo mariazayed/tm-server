@@ -15,7 +15,7 @@ import trademind.tm_server.enums.ScoreEnum;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-@Table(name = AppConstants.DB_TRADE_PLANS)
+@Table(name = AppConstants.DB_TRADE_EVALUATIONS)
 public class TradeEvaluate extends BaseEntity {
     /// ********** Execution Feedback **********
     @Column(nullable = false)
