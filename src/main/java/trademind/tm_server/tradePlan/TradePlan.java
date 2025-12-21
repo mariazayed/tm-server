@@ -45,6 +45,9 @@ public class TradePlan extends BaseEntity {
     private double entryZoneEndLevel;
 
     @Column(nullable = false)
+    private double estimatedEntryLevel;
+
+    @Column(nullable = false)
     private double invalidationStartLevel;
 
     @Column(nullable = false)
