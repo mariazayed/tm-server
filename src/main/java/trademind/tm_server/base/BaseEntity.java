@@ -60,7 +60,5 @@ public abstract class BaseEntity {
     )
     private LocalDateTime deletedAt;
 
-    // Asset
-
     private String notes;
 }
