@@ -17,8 +17,8 @@ public class TradePlanController {
     private TradePlanService tradePlanService;
 
     @PostMapping
-    public TradePlanResponse create(@RequestBody NewTradePlanRequest plan) {
-        return tradePlanService.create(plan);
+    public TradePlanResponse create(@RequestBody NewTradePlanRequest request) {
+        return tradePlanService.create(request);
     }
 
     @GetMapping
@@ -32,8 +32,8 @@ public class TradePlanController {
     }
 
     @PutMapping(AppConstants.SUB_URL_ID_PARAM)
-    public TradePlanResponse update(@PathVariable Long id, @RequestBody UpdateTradePlanRequest plan) {
-        return tradePlanService.update(id, plan);
+    public TradePlanResponse update(@PathVariable Long id, @RequestBody UpdateTradePlanRequest request) {
+        return tradePlanService.update(id, request);
     }
 
     @DeleteMapping(AppConstants.SUB_URL_ID_PARAM)
