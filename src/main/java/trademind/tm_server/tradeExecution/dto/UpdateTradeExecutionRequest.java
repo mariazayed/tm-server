@@ -1,11 +1,13 @@
 package trademind.tm_server.tradeExecution.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import trademind.tm_server.enums.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -13,52 +15,33 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateTradeExecutionRequest {
-    /// ********** Market Context **********
+    /// ********** Timing & Session **********
+    @NotNull(message = "Required")
+    private LocalDateTime enteredAt;
+
+    @NotNull(message = "Required")
+    private SessionEnum session;
+
+    /// ********** Core Trade Details **********
+    @NotNull(message = "Required")
     private TradeDirectionEnum direction;
-    private MarketBiasEnum marketBias;
-    private MarketStateEnum marketState;
-    private VolatilityEnum volatilityExpectation;
 
-    /// ********** Entry Strategy **********
-    private List<EntryReasonEnum> entryReasons;
-    private List<EntryConfirmationEnum> entryConfirmations;
-    private EntryZoneTypeEnum entryZoneType;
-    private double entryZoneStartLevel;
-    private double entryZoneEndLevel;
-    private double estimatedEntryLevel;
-
-    /// ********** Invalidation and Scaling **********
-    private double invalidationStartLevel;
-    private double invalidationEndLevel;
-    private InvalidationConditionEnum invalidationCondition;
-    private boolean willPyramid;
-    private List<ScalingRuleEnum> scalingRules;
-    private boolean willBoost;
-    private List<BoostRuleEnum> boostRules;
-
-    /// ********** Risk and Money Management **********
+    @NotNull(message = "Required")
     private double lotSize;
-    private double riskRewardRatio;
 
-    /// ********** Stop Loss Details **********
-    private double stopLossPrice;
-    private double stopLossInPips;
-    private double stopLossInUSD;
-    private StopLossPlacementReasonEnum stopLossPlacementLogic;
+    /// ********** Execution Logic **********
+    @NotNull(message = "Required")
+    private List<EntryReasonEnum> entryReasons;
 
-    /// ********** Take Profit Details **********
-    private double takeProfitPrice;
-    private double takeProfitInPips;
-    private double takeProfitInUSD;
-    private TakeProfitPlacementReasonEnum takeProfitPlacementLogic;
+    @NotNull(message = "Required")
+    private List<EntryConfirmationEnum> entryConfirmations;
 
-    /// ********** Psychological and Focus Factors **********
-    private ScoreEnum focusLevel;
-    private ScoreEnum stressLevel;
-    private ScoreEnum confidenceLevel;
+    @NotNull(message = "Required")
+    private EntryTypeEnum entryType;
 
-    /// ********** Trade Quality and Performance **********
-    private ProbabilityEnum expectedProbabilityOfSuccess;
+    /// ********** Classification **********
+    @NotNull(message = "Required")
+    private List<TradeTagEnum> tradeTags;
 
     /// ********** Additional Details **********
     private String notes;

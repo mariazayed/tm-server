@@ -20,11 +20,21 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @Table(name = AppConstants.DB_TRADE_PLANS)
 public class TradeExecution extends BaseEntity {
+    /// ********** Timing & Session **********
+    @Column(nullable = false)
     private LocalDateTime enteredAt;
 
     @Column(nullable = false)
+    private SessionEnum session;
+
+    /// ********** Core Trade Details **********
+    @Column(nullable = false)
     private TradeDirectionEnum direction;
 
+    @Column(nullable = false)
+    private double lotSize;
+
+    /// ********** Execution Logic **********
     @Column(nullable = false)
     private List<EntryReasonEnum> entryReasons;
 
@@ -32,14 +42,9 @@ public class TradeExecution extends BaseEntity {
     private List<EntryConfirmationEnum> entryConfirmations;
 
     @Column(nullable = false)
-    private double lotSize;
-
-    @Column(nullable = false)
     private EntryTypeEnum entryType;
 
+    /// ********** Classification **********
     @Column(nullable = false)
     private List<TradeTagEnum> tradeTags;
-
-    @Column(nullable = false)
-    private SessionEnum session;
 }
