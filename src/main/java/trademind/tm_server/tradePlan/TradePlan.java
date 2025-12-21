@@ -19,7 +19,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 @Table(name = AppConstants.DB_TRADE_PLANS)
 public class TradePlan extends BaseEntity {
-
+    /// ********** Market Context **********
     @Column(nullable = false)
     private TradeDirectionEnum direction;
 
@@ -29,6 +29,10 @@ public class TradePlan extends BaseEntity {
     @Column(nullable = false)
     private MarketStateEnum marketState;
 
+    @Column(nullable = false)
+    private VolatilityEnum volatilityExpectation;
+
+    /// ********** Entry Strategy **********
     @Column(nullable = false)
     private List<EntryReasonEnum> entryReasons;
 
@@ -47,6 +51,7 @@ public class TradePlan extends BaseEntity {
     @Column(nullable = false)
     private double estimatedEntryLevel;
 
+    /// ********** Invalidation and Scaling **********
     @Column(nullable = false)
     private double invalidationStartLevel;
 
@@ -63,26 +68,19 @@ public class TradePlan extends BaseEntity {
     private List<ScalingRuleEnum> scalingRules;
 
     @Column(nullable = false)
-    private ProbabilityEnum expectedProbabilityOfSuccess;
-
-    @Column(nullable = false)
     private boolean willBoost;
 
     @Column(nullable = false)
     private List<BoostRuleEnum> boostRules;
 
+    /// ********** Risk and Money Management **********
     @Column(nullable = false)
-    private VolatilityEnum volatilityExpectation;
+    private double lotSize;
 
     @Column(nullable = false)
-    private ScoreEnum focusLevel;
+    private double riskRewardRatio;
 
-    @Column(nullable = false)
-    private ScoreEnum stressLevel;
-
-    @Column(nullable = false)
-    private ScoreEnum confidenceLevel;
-
+    /// ********** Stop Loss Details **********
     @Column(nullable = false)
     private double stopLossPrice;
 
@@ -95,6 +93,7 @@ public class TradePlan extends BaseEntity {
     @Column(nullable = false)
     private StopLossPlacementReasonEnum stopLossPlacementLogic;
 
+    /// ********** Take Profit Details **********
     @Column(nullable = false)
     private double takeProfitPrice;
 
@@ -107,9 +106,17 @@ public class TradePlan extends BaseEntity {
     @Column(nullable = false)
     private TakeProfitPlacementReasonEnum takeProfitPlacementLogic;
 
+    /// ********** Psychological and Focus Factors **********
     @Column(nullable = false)
-    private double riskRewardRatio;
+    private ScoreEnum focusLevel;
 
     @Column(nullable = false)
-    private double lotSize;
+    private ScoreEnum stressLevel;
+
+    @Column(nullable = false)
+    private ScoreEnum confidenceLevel;
+
+    /// ********** Trade Quality and Performance **********
+    @Column(nullable = false)
+    private ProbabilityEnum expectedProbabilityOfSuccess;
 }
