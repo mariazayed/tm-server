@@ -11,13 +11,15 @@ public class StaticData {
                     TradeDirectionEnum.LONG,
                     1,
                     "Buy",
-                    "شراء"
+                    "شراء",
+                    ""
             ),
             new TradeDirectionDataType(
                     TradeDirectionEnum.SHORT,
                     1,
                     "Sell",
-                    "بيع"
+                    "بيع",
+                    ""
             )
     );
 
@@ -26,18 +28,21 @@ public class StaticData {
                     MarketBiasEnum.BULLISH,
                     1,
                     "Bullish",
+                    "",
                     ""
             ),
             new MarketBiasDataType(
                     MarketBiasEnum.BEARISH,
                     2,
                     "Bearish",
+                    "",
                     ""
             ),
             new MarketBiasDataType(
                     MarketBiasEnum.NEUTRAL,
                     3,
                     "Neutral",
+                    "",
                     ""
             )
     );
@@ -47,6 +52,7 @@ public class StaticData {
                     MarketStateEnum.UPTREND,
                     1,
                     "Uptrend",
+                    "",
                     ""
             ),
 
@@ -54,48 +60,56 @@ public class StaticData {
                     MarketStateEnum.DOWNTREND,
                     2,
                     "Downtrend",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.UPTREND_CORRECTION,
                     3,
                     "Uptrend Correction (Major Downtrend)",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.DOWNTREND_CORRECTION,
                     4,
                     "Downtrend Correction (Major Uptrend)",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.CONSOLIDATION,
                     5,
                     "Consolidation",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.HIGH_VOLATILITY,
                     6,
                     "High Volatility",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.LOW_VOLATILITY,
                     7,
                     "Low Volatility",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.HIGH_VOLUME,
                     8,
                     "High Volume",
+                    "",
                     ""
             ),
             new MarketStateDataType(
                     MarketStateEnum.LOW_VOLUME,
                     9,
                     "Low Volume",
+                    "",
                     ""
             )
     );
@@ -105,48 +119,56 @@ public class StaticData {
                     EntryReasonEnum.TREND_CONTINUATION,
                     1,
                     "Trend Continuation",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.TREND_REVERSAL,
                     2,
                     "Trend Reversal",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.LIQUIDITY_SWEEP,
                     3,
                     "Liquidity Sweep",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.RETEST,
                     4,
                     "Retest",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.BREAKOUT,
                     5,
                     "Breakout",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.PULLBACK,
                     6,
                     "Pullback",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.OB_MITIGATION,
                     7,
                     "OB Mitigation",
+                    "",
                     ""
             ),
             new EntryReasonDataType(
                     EntryReasonEnum.FVG_MITIGATION,
                     8,
                     "FVG Mitigation",
+                    "",
                     ""
             )
     );
@@ -156,114 +178,132 @@ public class StaticData {
                     EntryConfirmationEnum.CANDLE_PATTERN,
                     1,
                     "Candle Pattern:",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.BOS,
                     2,
                     "BOS",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.CHOCH,
                     3,
                     "CHOCH",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.BREAKOUT,
                     4,
                     "Breakout",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.RETEST,
                     5,
                     "Retest",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.LIQUIDITY_SWEEP,
                     6,
                     "Liquidity Sweep",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.INDICATOR_CONFIRMATION,
                     7,
                     "Indicator Confirmation:",
+                    "",
                     ""
             ),
             new EntryConfirmationDataType(
                     EntryConfirmationEnum.NONE,
                     8,
                     "None (aggressive entry)",
+                    "",
                     ""
             )
     );
 
     public static final List<EntryZoneTypeDataType> ENTRY_ZONE_TYPES = List.of(
-      new EntryZoneTypeDataType(
-              EntryZoneTypeEnum.OB,
-              1,
-              "OB",
-              ""
-      ),
+            new EntryZoneTypeDataType(
+                    EntryZoneTypeEnum.OB,
+                    1,
+                    "OB",
+                    "",
+                    ""
+            ),
             new EntryZoneTypeDataType(
                     EntryZoneTypeEnum.FVG,
                     2,
                     "FVG",
+                    "",
                     ""
             ),
             new EntryZoneTypeDataType(
                     EntryZoneTypeEnum.LIQUIDITY,
                     3,
                     "Liquidity",
+                    "",
                     ""
             ),
             new EntryZoneTypeDataType(
                     EntryZoneTypeEnum.SUPPORT_RESISTANCE,
                     4,
                     "Support/Resistance",
+                    "",
                     ""
             ),
             new EntryZoneTypeDataType(
                     EntryZoneTypeEnum.SK_LEVELS,
                     5,
                     "SK Levels",
+                    "",
                     ""
             )
-            );
+    );
 
     public static final List<InvalidationConditionDataType> INVALIDATION_CONDITIONS = List.of(
             new InvalidationConditionDataType(
                     InvalidationConditionEnum.CHOCH_AGAINST_DIRECTION,
                     1,
                     "CHOCH against direction",
+                    "",
                     ""
             ),
             new InvalidationConditionDataType(
                     InvalidationConditionEnum.BREAK_OF_OB,
                     2,
                     "Break of OB",
+                    "",
                     ""
             ),
             new InvalidationConditionDataType(
                     InvalidationConditionEnum.SWEEP_FAILURE,
                     3,
                     "Sweep Failure",
+                    "",
                     ""
             ),
             new InvalidationConditionDataType(
                     InvalidationConditionEnum.NEWS_VOLATILITY,
                     4,
                     "News Volatility",
+                    "",
                     ""
             ),
             new InvalidationConditionDataType(
                     InvalidationConditionEnum.VOLUME_DIVERGENCE,
                     5,
                     "Volume Divergence",
+                    "",
                     ""
             )
     );
@@ -273,18 +313,21 @@ public class StaticData {
                     ProbabilityEnum.HIGH,
                     1,
                     "High",
+                    "",
                     ""
             ),
             new ProbabilityDataType(
                     ProbabilityEnum.MEDIUM,
                     1,
                     "Medium",
+                    "",
                     ""
             ),
             new ProbabilityDataType(
                     ProbabilityEnum.LOW,
                     1,
                     "Low",
+                    "",
                     ""
             )
     );
@@ -294,18 +337,21 @@ public class StaticData {
                     VolatilityEnum.HIGH,
                     1,
                     "High",
+                    "",
                     ""
             ),
             new VolatilityDataType(
                     VolatilityEnum.MEDIUM,
                     1,
                     "Medium",
+                    "",
                     ""
             ),
             new VolatilityDataType(
                     VolatilityEnum.LOW,
                     1,
                     "Low",
+                    "",
                     ""
             )
     );
@@ -315,21 +361,78 @@ public class StaticData {
                     ScalingRuleEnum.ADD_ON_BOS,
                     1,
                     "Add on BOS",
+                    "",
                     ""
             ),
             new ScalingRuleDataType(
                     ScalingRuleEnum.ADD_ON_BREAK,
                     2,
                     "Add on Break",
+                    "",
                     ""
             ),
             new ScalingRuleDataType(
                     ScalingRuleEnum.ADD_ON_RETEST,
                     3,
                     "Add on Retest",
+                    "",
                     ""
             )
     );
 
     public static final List<BoostRuleDataType> BOOST_RULES = List.of();
+
+    public static final List<StopLossPlacementReasonDataType> STOP_LOSS_PLACEMENT_REASONS = List.of(
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.STRUCTURE,
+                    1,
+                    "Structure",
+                    "",
+                    ""
+            ),
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.VOLATILITY_BASED,
+                    2,
+                    "Volatility Based",
+                    "",
+                    ""
+            ),
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.PREVIOUS_HIGH,
+                    3,
+                    "Previous High",
+                    "",
+                    ""
+            ),
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.PREVIOUS_LOW,
+                    4,
+                    "Previous Low",
+                    "",
+                    ""
+            ),
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.OB_BOUNDARY,
+                    5,
+                    "OB Boundary",
+                    "",
+                    ""
+            ),
+            new StopLossPlacementReasonDataType(
+                    StopLossPlacementReasonEnum.FVG_BOUNDARY,
+                    6,
+                    "FVG Boundary",
+                    "",
+                    ""
+            )
+    );
+
+
+    public static List<TakeProfitPlacementReasonDataType> TAKE_PROFIT_PLACEMENT_REASONS = List.of(
+            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.FVG_FILL, 1, "", "", ""),
+            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.LIQUIDITY_SWEEP, 1, "", "", ""),
+            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.MAJOR_LEVEL, 1, "", "", ""),
+            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.RISK_MULTIPLE_ACHIEVED, 1, "", "", ""),
+            new TakeProfitPlacementReasonDataType(TakeProfitPlacementReasonEnum.OPPOSING_OB, 1, "", "", "")
+    );
 }

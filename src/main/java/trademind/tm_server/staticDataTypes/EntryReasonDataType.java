@@ -2,11 +2,11 @@ package trademind.tm_server.staticDataTypes;
 
 import trademind.tm_server.enums.EntryReasonEnum;
 
-public class EntryReasonDataType extends BaseStaticDataType{
+public class EntryReasonDataType extends BaseStaticDataType {
     EntryReasonEnum id;
 
-    public EntryReasonDataType(EntryReasonEnum id, int order, String enName, String arName) {
-        super(order, enName, arName);
+    public EntryReasonDataType(EntryReasonEnum id, int order, String enName, String arName, String description) {
+        super(order, enName, arName, description);
         this.id = id;
     }
 }

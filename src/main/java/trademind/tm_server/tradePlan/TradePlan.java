@@ -1,6 +1,8 @@
 package trademind.tm_server.tradePlan;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
@@ -68,4 +70,43 @@ public class TradePlan extends BaseEntity {
 
     @Column(nullable = false)
     private VolatilityEnum volatilityExpectation;
+
+    @Column(nullable = false)
+    private ScoreEnum focusLevel;
+
+    @Column(nullable = false)
+    private ScoreEnum stressLevel;
+
+    @Column(nullable = false)
+    private ScoreEnum confidenceLevel;
+
+    @Column(nullable = false)
+    private double stopLossPrice;
+
+    @Column(nullable = false)
+    private double stopLossInPips;
+
+    @Column(nullable = false)
+    private double stopLossInUSD;
+
+    @Column(nullable = false)
+    private StopLossPlacementReasonEnum stopLossPlacementLogic;
+
+    @Column(nullable = false)
+    private double takeProfitPrice;
+
+    @Column(nullable = false)
+    private double takeProfitInPips;
+
+    @Column(nullable = false)
+    private double takeProfitInUSD;
+
+    @Column(nullable = false)
+    private TakeProfitPlacementReasonEnum takeProfitPlacementLogic;
+
+    @Column(nullable = false)
+    private double riskRewardRatio;
+
+    @Column(nullable = false)
+    private double lotSize;
 }
