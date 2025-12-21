@@ -9,7 +9,8 @@ public final class AppConstants {
 //    public static final String DB_STRATEGY = "strategies";
 //    public static final String DB_PRICE_TRIGGERS = "price_triggers";
 //    public static final String DB_SECTORS = "sectors";
-//    public static final String DB_TRADES_DETAILS = "trades_details";
+    public static final String DB_ASSETS = "assets";
+    //    public static final String DB_TRADES_DETAILS = "trades_details";
 //    public static final String DB_TRADES = "trades";
     public static final String DB_TRADE_PLANS = "trade_plans";
 //    public static final String DB_STOP_LOSS_STRATEGY = "stop_loss_strategy";
