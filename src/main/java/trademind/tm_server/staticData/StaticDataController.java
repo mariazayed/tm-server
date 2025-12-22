@@ -13,8 +13,6 @@ import trademind.tm_server.staticData.dto.StaticDataResponse;
 public class StaticDataController {
     @GetMapping
     public StaticDataResponse getAll() {
-        System.out.println(StaticData.TRADE_DIRECTIONS.size());
-
         return StaticDataResponse.builder()
                 .tradeDirections(StaticData.TRADE_DIRECTIONS)
                 .marketBiases(StaticData.MARKET_BIASES)
