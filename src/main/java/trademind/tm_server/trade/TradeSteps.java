@@ -31,6 +31,5 @@ public class TradeSteps extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trade_id", nullable = false)
-    private Trade trade;
-
+    private Trade trades;
 }

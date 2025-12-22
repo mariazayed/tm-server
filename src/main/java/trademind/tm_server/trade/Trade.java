@@ -35,6 +35,6 @@ public class Trade extends BaseEntity {
     @JoinColumn(name = "trade_evaluation_id", referencedColumnName = "id")
     private TradeEvaluate tradeEvaluation;
 
-    @OneToMany(mappedBy = "trade", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "trades", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TradeSteps> tradeSteps;
 }

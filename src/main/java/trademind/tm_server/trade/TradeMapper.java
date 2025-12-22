@@ -1,7 +1,7 @@
 package trademind.tm_server.trade;
 
 import org.mapstruct.Mapper;
-import trademind.tm_server.trade.dto.NewTradeRequest;
+import trademind.tm_server.trade.dto.InitTradeRequest;
 import trademind.tm_server.trade.dto.TradeResponse;
 import trademind.tm_server.trade.dto.UpdateTradeRequest;
 
@@ -9,7 +9,7 @@ import trademind.tm_server.trade.dto.UpdateTradeRequest;
 public interface TradeMapper {
     TradeResponse toResponse(Trade trade);
 
-    Trade toEntity(NewTradeRequest request);
+    Trade toEntity(InitTradeRequest request);
 
     Trade toEntity(UpdateTradeRequest request);
 }
