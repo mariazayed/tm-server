@@ -22,7 +22,7 @@ public class NewDayRequest {
     private boolean noWork;
 
     @NotNull(message = "Required")
-    private boolean weekEnd;
+    private boolean weekend;
 
     private String notes;
 }

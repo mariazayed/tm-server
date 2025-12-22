@@ -11,7 +11,7 @@ import trademind.tm_server.day.dto.UpdateDayRequest;
 import java.util.List;
 
 @RestController
-@RequestMapping(AppConstants.URL_TRADE_TERMINATION)
+@RequestMapping(AppConstants.URL_DAY)
 public class DayController {
     @Autowired
     private DayService service;

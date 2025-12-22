@@ -28,7 +28,7 @@ public class Day extends BaseEntity {
     private boolean noWork;
 
     @Column(nullable = false)
-    private boolean weekEnd;
+    private boolean weekend;
 
     @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Trade> trades;
