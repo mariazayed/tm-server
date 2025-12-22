@@ -1,4 +1,4 @@
-package trademind.tm_server.staticDataTypes;
+package trademind.tm_server.staticData.dataTypes;
 
 public class BaseStaticDataType {
     int order;
@@ -6,7 +6,7 @@ public class BaseStaticDataType {
     String arName;
     String description;
 
-    public BaseStaticDataType(int order, String enName, String arName, String description){
+    public BaseStaticDataType(int order, String enName, String arName, String description) {
         this.order = order;
         this.enName = enName;
         this.arName = arName;

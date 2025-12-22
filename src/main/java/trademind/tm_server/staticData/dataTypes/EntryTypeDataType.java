@@ -1,4 +1,4 @@
-package trademind.tm_server.staticDataTypes;
+package trademind.tm_server.staticData.dataTypes;
 
 import trademind.tm_server.enums.EntryTypeEnum;
 

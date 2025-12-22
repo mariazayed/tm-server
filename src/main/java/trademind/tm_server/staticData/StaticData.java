@@ -1,7 +1,7 @@
-package trademind.tm_server.constants;
+package trademind.tm_server.staticData;
 
 import trademind.tm_server.enums.*;
-import trademind.tm_server.staticDataTypes.*;
+import trademind.tm_server.staticData.dataTypes.*;
 
 import java.util.List;
 

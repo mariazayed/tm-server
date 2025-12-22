@@ -19,15 +19,6 @@ public enum DayOfWeekEnum {
         this.index = index;
     }
 
-    public static DayOfWeekEnum fromIndex(int index) {
-        for (DayOfWeekEnum e : values()) {
-            if (e.index == index) {
-                return e;
-            }
-        }
-        throw new IllegalArgumentException("Invalid index: " + index);
-    }
-
     @JsonValue
     public int getValue() {
         return ordinal();
