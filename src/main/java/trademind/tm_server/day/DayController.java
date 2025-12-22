@@ -10,6 +10,7 @@ import trademind.tm_server.day.dto.UpdateDayRequest;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping(AppConstants.URL_DAY)
 public class DayController {
