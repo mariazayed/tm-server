@@ -1,7 +1,9 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
 import trademind.tm_server.enums.InvalidationConditionEnum;
 
+@Getter
 public class InvalidationConditionDataType extends BaseStaticDataType {
     InvalidationConditionEnum id;
 

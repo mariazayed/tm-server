@@ -1,7 +1,9 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
 import trademind.tm_server.enums.TradeUpdateEnum;
 
+@Getter
 public class TradeUpdateDataType extends BaseStaticDataType {
     TradeUpdateEnum id;
 

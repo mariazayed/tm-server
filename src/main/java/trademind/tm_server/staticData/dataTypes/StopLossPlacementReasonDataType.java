@@ -1,7 +1,9 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
 import trademind.tm_server.enums.StopLossPlacementReasonEnum;
 
+@Getter
 public class StopLossPlacementReasonDataType extends BaseStaticDataType {
     StopLossPlacementReasonEnum id;
 

@@ -1,7 +1,9 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
 import trademind.tm_server.enums.VolatilityEnum;
 
+@Getter
 public class VolatilityDataType extends BaseStaticDataType {
     VolatilityEnum id;
 

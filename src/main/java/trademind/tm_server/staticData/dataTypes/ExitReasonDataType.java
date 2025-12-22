@@ -1,7 +1,9 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
 import trademind.tm_server.enums.ExitReasonEnum;
 
+@Getter
 public class ExitReasonDataType extends BaseStaticDataType {
     ExitReasonEnum id;
 

@@ -1,5 +1,8 @@
 package trademind.tm_server.staticData.dataTypes;
 
+import lombok.Getter;
+
+@Getter
 public class BaseStaticDataType {
     int order;
     String enName;
