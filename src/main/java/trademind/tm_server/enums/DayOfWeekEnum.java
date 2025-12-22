@@ -1,5 +1,6 @@
 package trademind.tm_server.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 @Getter
@@ -25,5 +26,10 @@ public enum DayOfWeekEnum {
             }
         }
         throw new IllegalArgumentException("Invalid index: " + index);
+    }
+
+    @JsonValue
+    public int getValue() {
+        return ordinal();
     }
 }

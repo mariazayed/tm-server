@@ -50,8 +50,8 @@ public class DayService {
     }
 
     public DayResponse update(Long id, UpdateDayRequest tradeDetails) {
-        Day tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
+//        Day tradePlan = repository.findByIdAndDeletedAtIsNull(id)
+//                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         Day tradePlanEntity = mapper.toEntity(tradeDetails);
         Day savedDay = repository.save(tradePlanEntity);

@@ -1,5 +1,6 @@
 package trademind.tm_server.day;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
@@ -7,6 +8,7 @@ import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.DayOfWeekEnum;
 import trademind.tm_server.trade.Trade;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -19,10 +21,14 @@ import java.util.List;
 @Table(name = AppConstants.DB_DAYS)
 public class Day extends BaseEntity {
     @Column(nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime date;
+
+    @Column(nullable = false)
     private DayOfWeekEnum dayOfWeek;
 
     @Column(nullable = false)
-    private boolean isEnded;
+    private boolean ended;
 
     @Column(nullable = false)
     private boolean noWork;
