@@ -15,6 +15,6 @@ public enum TradeUpdateEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

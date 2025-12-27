@@ -20,6 +20,6 @@ public enum ExitReasonEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

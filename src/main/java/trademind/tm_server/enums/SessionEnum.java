@@ -17,6 +17,6 @@ public enum SessionEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

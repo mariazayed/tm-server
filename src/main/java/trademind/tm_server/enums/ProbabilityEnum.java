@@ -17,6 +17,6 @@ public enum ProbabilityEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

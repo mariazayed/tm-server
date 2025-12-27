@@ -26,6 +26,6 @@ public enum MarketBiasEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

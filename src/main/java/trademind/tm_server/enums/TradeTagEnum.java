@@ -21,6 +21,6 @@ public enum TradeTagEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

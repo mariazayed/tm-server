@@ -21,6 +21,6 @@ public enum DayOfWeekEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

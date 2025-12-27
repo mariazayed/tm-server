@@ -23,6 +23,6 @@ public enum MarketStateEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

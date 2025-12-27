@@ -19,6 +19,6 @@ public enum InvalidationConditionEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

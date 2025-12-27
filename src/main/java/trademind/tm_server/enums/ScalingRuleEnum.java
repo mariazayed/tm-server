@@ -17,6 +17,6 @@ public enum ScalingRuleEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

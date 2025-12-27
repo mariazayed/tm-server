@@ -20,6 +20,6 @@ public enum StopLossPlacementReasonEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

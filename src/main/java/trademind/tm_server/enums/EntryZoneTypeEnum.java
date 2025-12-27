@@ -19,6 +19,6 @@ public enum EntryZoneTypeEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

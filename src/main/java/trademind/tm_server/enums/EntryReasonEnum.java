@@ -22,6 +22,6 @@ public enum EntryReasonEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

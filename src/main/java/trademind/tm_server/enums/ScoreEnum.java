@@ -24,6 +24,6 @@ public enum ScoreEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

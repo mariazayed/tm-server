@@ -22,6 +22,6 @@ public enum EntryConfirmationEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

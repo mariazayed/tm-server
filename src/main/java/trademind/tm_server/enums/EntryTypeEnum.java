@@ -18,6 +18,6 @@ public enum EntryTypeEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

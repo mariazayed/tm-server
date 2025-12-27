@@ -17,6 +17,6 @@ public enum VolatilityEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }

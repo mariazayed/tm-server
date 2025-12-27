@@ -19,6 +19,6 @@ public enum TakeProfitPlacementReasonEnum {
 
     @JsonValue
     public int getValue() {
-        return ordinal();
+        return index;
     }
 }
