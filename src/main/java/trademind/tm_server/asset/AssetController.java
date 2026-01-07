@@ -19,7 +19,7 @@ import trademind.tm_server.constants.AppConstants;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:4300")
 @RestController
 @RequestMapping(AppConstants.URL_ASSET)
 @Tag(name = "Asset", description = "API endpoints for managing trading assets and cryptocurrencies")

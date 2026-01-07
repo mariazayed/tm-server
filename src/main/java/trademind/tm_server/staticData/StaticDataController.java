@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.staticData.dto.StaticDataResponse;
 
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:4300")
 @RestController
 @RequestMapping(AppConstants.URL_STATIC_DATA)
 public class StaticDataController {
