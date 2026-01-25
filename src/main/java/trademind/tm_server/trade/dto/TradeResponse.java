@@ -4,12 +4,28 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import trademind.tm_server.asset.Asset;
+import trademind.tm_server.day.Day;
+import trademind.tm_server.enums.TradeDirectionEnum;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class TradeResponse {
-    private int id;
-    private String notes;
+    private Asset asset;
+    private Day day;
+
+    private LocalDateTime entryDateTime;
+    private LocalDateTime exitDateTime;
+
+    private double entryPrice;
+    private double exitPrice;
+
+    private TradeDirectionEnum direction;
+    private double lotSize;
+    private double pips;
+    private double pnl;
 }

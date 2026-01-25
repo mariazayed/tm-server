@@ -6,10 +6,9 @@ import trademind.tm_server.asset.Asset;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.day.Day;
-import trademind.tm_server.tradeEvaluate.TradeEvaluate;
-import trademind.tm_server.tradePlan.TradePlan;
+import trademind.tm_server.enums.TradeDirectionEnum;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 
 @Entity
@@ -28,14 +27,14 @@ public class Trade extends BaseEntity {
     @JoinColumn(name = "day_id", nullable = false)
     private Day day;
 
-    @OneToMany(mappedBy = "trades", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TradeSteps> tradeSteps;
+    private LocalDateTime entryDateTime;
+    private LocalDateTime exitDateTime;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "trade_plan_id", referencedColumnName = "id")
-    private TradePlan tradePlan;
+    private double entryPrice;
+    private double exitPrice;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "trade_evaluation_id", referencedColumnName = "id")
-    private TradeEvaluate tradeEvaluation;
+    private TradeDirectionEnum direction;
+    private double lotSize;
+    private double pips;
+    private double pnl;
 }

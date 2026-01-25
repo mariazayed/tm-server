@@ -1,16 +1,13 @@
 package trademind.tm_server.trade;
 
 import org.mapstruct.Mapper;
-import trademind.tm_server.trade.dto.InitTradeRequest;
+import trademind.tm_server.asset.AssetMapper;
+import trademind.tm_server.trade.dto.NewTradeRequest;
 import trademind.tm_server.trade.dto.TradeResponse;
-import trademind.tm_server.trade.dto.UpdateTradeRequest;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = AssetMapper.class)
 public interface TradeMapper {
     TradeResponse toResponse(Trade trade);
 
-    Trade toEntity(InitTradeRequest request);
-
-    Trade toEntity(UpdateTradeRequest request);
+    Trade toEntity(NewTradeRequest request);
 }
-

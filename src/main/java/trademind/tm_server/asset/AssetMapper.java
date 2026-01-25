@@ -12,5 +12,15 @@ public interface AssetMapper {
     Asset toEntity(NewAssetRequest request);
 
     Asset toEntity(UpdateAssetRequest request);
+
+
+    default Asset map(Long id) {
+        if (id == null) {
+            return null;
+        }
+        Asset asset = new Asset();
+        asset.setId(id);
+        return asset;
+    }
 }
 
