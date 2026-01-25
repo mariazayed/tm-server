@@ -1,15 +1,15 @@
 package trademind.tm_server.day;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.*;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.DayOfWeekEnum;
-import trademind.tm_server.trade.Trade;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 
 @Entity
@@ -35,7 +35,4 @@ public class Day extends BaseEntity {
 
     @Column(nullable = false)
     private boolean weekend;
-
-    @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Trade> trades;
 }

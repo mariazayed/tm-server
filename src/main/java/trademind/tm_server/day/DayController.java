@@ -1,7 +1,6 @@
 package trademind.tm_server.day;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.day.dto.DayResponse;
@@ -35,16 +34,5 @@ public class DayController {
     @PutMapping(AppConstants.SUB_URL_ID_PARAM)
     public DayResponse update(@PathVariable Long id, @RequestBody UpdateDayRequest request) {
         return service.update(id, request);
-    }
-
-    @DeleteMapping(AppConstants.SUB_URL_ID_PARAM)
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping(AppConstants.SUB_URL_UNDO_DELETE)
-    public DayResponse undoDelete(@PathVariable Long id) {
-        return service.undoDelete(id);
     }
 }

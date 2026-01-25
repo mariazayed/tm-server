@@ -5,7 +5,6 @@ import lombok.*;
 import trademind.tm_server.asset.Asset;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
-import trademind.tm_server.day.Day;
 import trademind.tm_server.enums.TradeDirectionEnum;
 
 import java.time.LocalDateTime;
@@ -22,10 +21,6 @@ public class Trade extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asset_id", nullable = false)
     private Asset asset;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "day_id", nullable = false)
-    private Day day;
 
     private LocalDateTime entryDateTime;
     private LocalDateTime exitDateTime;
