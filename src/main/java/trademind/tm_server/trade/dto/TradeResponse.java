@@ -11,7 +11,6 @@ import trademind.tm_server.enums.TradeDirectionEnum;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class TradeResponse {

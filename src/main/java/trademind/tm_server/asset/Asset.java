@@ -14,7 +14,6 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @EqualsAndHashCode(callSuper = false)
 @Table(name = AppConstants.DB_ASSETS)
 @Schema(description = "Entity representing a trading asset (cryptocurrency or token) that can be traded in the system")

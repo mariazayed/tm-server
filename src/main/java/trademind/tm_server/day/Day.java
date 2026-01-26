@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @EqualsAndHashCode(callSuper = false)
 @Table(name = AppConstants.DB_DAYS)
 public class Day extends BaseEntity {

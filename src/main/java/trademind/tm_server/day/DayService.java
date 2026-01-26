@@ -24,8 +24,14 @@ public class DayService {
     private final String tableName = "Day";
 
     public DayResponse create(NewDayRequest trade) {
+        System.out.println("DayService.create");
+        System.out.println(trade);
         Day tradePlanEntity = mapper.toEntity(trade);
+        System.out.println("tradePlanEntity");
+        System.out.println(tradePlanEntity);
         Day savedDay = repository.save(tradePlanEntity);
+        System.out.println("savedDay");
+        System.out.println(savedDay);
         return mapper.toResponse(savedDay);
     }
 
@@ -33,7 +39,7 @@ public class DayService {
         List<Day> tradePlanList = repository.findByDeletedAtIsNull();
 
         return tradePlanList.stream()
-                .map(mapper::toResponse) // convert each Trade to TradeTerminateResponse
+                .map(mapper::toResponse)
                 .toList();
     }
 
@@ -50,6 +56,8 @@ public class DayService {
     }
 
     public DayResponse update(Long id, UpdateDayRequest tradeDetails) {
+        System.out.println("DayService.update");
+        System.out.println(tradeDetails);
 //        Day tradePlan = repository.findByIdAndDeletedAtIsNull(id)
 //                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 

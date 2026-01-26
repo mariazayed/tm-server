@@ -10,7 +10,6 @@ import trademind.tm_server.enums.DayOfWeekEnum;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class DayResponse {
