@@ -1,6 +1,7 @@
 package trademind.tm_server.memoir;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingTarget;
 import trademind.tm_server.memoir.dto.MemoirResponse;
 import trademind.tm_server.memoir.dto.NewMemoirRequest;
 import trademind.tm_server.memoir.dto.UpdateMemoirRequest;
@@ -11,6 +12,7 @@ public interface MemoirMapper {
 
     Memoir toEntity(NewMemoirRequest request);
 
-    Memoir toEntity(UpdateMemoirRequest request);
+    //    Memoir toEntity(UpdateMemoirRequest request);
+    void updateEntity(UpdateMemoirRequest dto, @MappingTarget Memoir entity);
 }
 

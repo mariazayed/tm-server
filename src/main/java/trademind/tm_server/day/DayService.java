@@ -6,8 +6,10 @@ import trademind.tm_server.day.dto.DayResponse;
 import trademind.tm_server.day.dto.NewDayRequest;
 import trademind.tm_server.day.dto.UpdateDayRequest;
 import trademind.tm_server.day.repository.DayRepository;
+import trademind.tm_server.enums.DayOfWeekEnum;
 import trademind.tm_server.exceptions.BadRequestException;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
+import trademind.tm_server.memoir.Memoir;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,13 +51,13 @@ public class DayService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
     }
 
-    public DayResponse update(Long id, UpdateDayRequest tradeDetails) {
-//        Day tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-//                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
+    public DayResponse update(Long id, UpdateDayRequest request) {
+        Day entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
-        Day tradePlanEntity = mapper.toEntity(tradeDetails);
-        Day savedDay = repository.save(tradePlanEntity);
-        return mapper.toResponse(savedDay);
+        mapper.updateEntity(request, entity);
+
+        return mapper.toResponse(repository.save(entity));
     }
 
     public DayResponse undoDelete(Long id) {

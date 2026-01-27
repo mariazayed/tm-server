@@ -49,13 +49,13 @@ public class MemoirService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
     }
 
-    public MemoirResponse update(Long id, UpdateMemoirRequest tradeDetails) {
-//        Day tradePlan = repository.findByIdAndDeletedAtIsNull(id)
-//                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
+    public MemoirResponse update(Long id, UpdateMemoirRequest request) {
+        Memoir entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
-        Memoir entity = mapper.toEntity(tradeDetails);
-        Memoir saved = repository.save(entity);
-        return mapper.toResponse(saved);
+        mapper.updateEntity(request, entity);
+
+        return mapper.toResponse(repository.save(entity));
     }
 
     public MemoirResponse undoDelete(Long id) {
