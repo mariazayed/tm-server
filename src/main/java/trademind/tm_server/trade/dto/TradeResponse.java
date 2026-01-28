@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import trademind.tm_server.asset.Asset;
+import trademind.tm_server.asset.dto.AssetResponse;
+import trademind.tm_server.asset.repository.AssetRepository;
 import trademind.tm_server.day.Day;
 import trademind.tm_server.enums.TradeDirectionEnum;
 
@@ -14,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TradeResponse {
-    private Asset asset;
+    private AssetResponse asset;
 
     private LocalDateTime entryDateTime;
     private LocalDateTime exitDateTime;
