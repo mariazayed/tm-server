@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TradeResponse {
     private Asset asset;
-    private Day day;
 
     private LocalDateTime entryDateTime;
     private LocalDateTime exitDateTime;

@@ -8,6 +8,7 @@ import trademind.tm_server.trade.dto.TradeResponse;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:4300")
 @RestController
 @RequestMapping(AppConstants.URL_TRADE)
 public class TradeController {
@@ -15,8 +16,8 @@ public class TradeController {
     private TradeService service;
 
     @PostMapping
-    public TradeResponse create(@RequestBody NewTradeRequest request) {
-        return service.create(request);
+    public List<TradeResponse> create(@RequestBody List<NewTradeRequest> requests) {
+        return service.create(requests);
     }
 
     @GetMapping

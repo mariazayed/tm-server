@@ -17,9 +17,6 @@ public class NewTradeRequest {
     private Long asset;
 
     @NotNull(message = "Required")
-    private Long day;
-
-    @NotNull(message = "Required")
     private LocalDateTime entryDateTime;
 
     @NotNull(message = "Required")

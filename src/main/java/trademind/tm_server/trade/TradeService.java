@@ -19,15 +19,18 @@ public class TradeService {
     @Autowired
     private TradeMapper mapper;
 
-    @Autowired
-    private AssetLookupMapper assetLookupMapper;
-
     private final String tableName = "Trade";
 
-    public TradeResponse create(NewTradeRequest request) {
-        Trade tradePlanEntity = mapper.toEntity(request);
-        Trade savedTrade = repository.save(tradePlanEntity);
-        return mapper.toResponse(savedTrade);
+    public List<TradeResponse> create(List<NewTradeRequest> requests) {
+        List<Trade> tradeEntities = requests.stream()
+                .map(mapper::toEntity)
+                .toList();
+
+        List<Trade> savedTrades = repository.saveAll(tradeEntities);
+
+        return savedTrades.stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 
     public List<TradeResponse> getAll() {
