@@ -110,10 +110,8 @@ public class AssetService {
         Map<String, Object> filters = new HashMap<>();
         if (request.getName() != null) filters.put("name", request.getName());
         if (request.getSymbol() != null) filters.put("symbol", request.getSymbol());
-        if (request.getSectorId() != null) filters.put("sectorId", request.getSectorId());
 
         Map<String, String> relationFilters = new HashMap<>();
-        relationFilters.put("sectors", "sectorId");
 
         BaseSearchService<Asset> baseService = new BaseSearchService<>(searchRepository);
 

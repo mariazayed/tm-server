@@ -32,6 +32,12 @@ public class NewTradeRequest {
     private double exitPrice;
 
     @NotNull(message = "Required")
+    private double slPrice;
+
+    @NotNull(message = "Required")
+    private double tpPrice;
+
+    @NotNull(message = "Required")
     private TradeDirectionEnum direction;
 
     @NotNull(message = "Required")

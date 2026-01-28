@@ -23,6 +23,9 @@ public class TradeResponse {
     private double entryPrice;
     private double exitPrice;
 
+    private double slPrice;
+    private double tpPrice;
+
     private TradeDirectionEnum direction;
     private double lotSize;
     private double pips;
