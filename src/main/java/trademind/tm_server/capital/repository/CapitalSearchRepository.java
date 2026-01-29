@@ -1,0 +1,12 @@
+package trademind.tm_server.capital.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
+import trademind.tm_server.capital.Capital;
+
+// For dynamic search queries
+
+@Repository
+public interface CapitalSearchRepository extends JpaRepository<Capital, Long>, JpaSpecificationExecutor<Capital> {
+}

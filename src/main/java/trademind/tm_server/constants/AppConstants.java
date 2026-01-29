@@ -16,6 +16,7 @@ public final class AppConstants {
     public static final String DB_TRADE_STEPS = "trade_steps";
     public static final String DB_DAYS = "days";
     public static final String DB_MEMOIRS = "memoirs";
+    public static final String DB_CAPITALS = "capitals";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
@@ -28,6 +29,7 @@ public final class AppConstants {
     public static final String URL_TRADE_EVALUATION = API_VERSION + "/tradeEvaluation";
     public static final String URL_DAY = API_VERSION + "/day";
     public static final String URL_MEMOIR = API_VERSION + "/memoir";
+    public static final String URL_CAPITAL = API_VERSION + "/capital";
     public static final String URL_STATIC_DATA = API_VERSION + "/staticData";
 
     // Sub-URL Endpoints
