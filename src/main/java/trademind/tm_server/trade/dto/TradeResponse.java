@@ -31,4 +31,6 @@ public class TradeResponse {
     private double lotSize;
     private double pips;
     private double pnl;
+
+    private String notes;
 }
