@@ -7,6 +7,7 @@ import trademind.tm_server.reminderNote.dto.NewReminderNoteRequest;
 import trademind.tm_server.reminderNote.repository.ReminderNoteRepository;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -45,5 +46,12 @@ public class ReminderNoteService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         return mapper.toResponse(reminderNotePlan);
+    }
+
+        public void delete(Long id) {
+        ReminderNote object = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
+        object.setDeletedAt(LocalDateTime.now());
+        repository.save(object);
     }
 }

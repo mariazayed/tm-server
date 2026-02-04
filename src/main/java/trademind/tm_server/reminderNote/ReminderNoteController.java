@@ -1,5 +1,6 @@
 package trademind.tm_server.reminderNote;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import trademind.tm_server.reminderNote.dto.ReminderNoteResponse;
@@ -28,5 +29,12 @@ public class ReminderNoteController {
     @GetMapping(AppConstants.SUB_URL_ID_PARAM)
     public ReminderNoteResponse getById(@PathVariable Long id) {
         return service.getOneById(id);
+    }
+
+    @DeleteMapping(AppConstants.SUB_URL_ID_PARAM)
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
