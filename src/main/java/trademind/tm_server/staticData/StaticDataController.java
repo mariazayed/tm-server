@@ -29,7 +29,7 @@ public class StaticDataController {
                 .takeProfitPlacementReasons(StaticData.TAKE_PROFIT_PLACEMENT_REASONS)
                 .entryTypes(StaticData.ENTRY_TYPES)
                 .sessions(StaticData.SESSIONS)
-                .tradeTags(StaticData.TRADE_TAGS)
+                .strategyTags(StaticData.STRATEGY_TAGS)
                 .tradeUpdates(StaticData.TRADE_UPDATES)
                 .exitReasons(StaticData.EXIT_REASONS)
                 .build();

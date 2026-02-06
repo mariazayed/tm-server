@@ -525,51 +525,51 @@ public class StaticData {
             )
     );
 
-    public static List<TradeTagDataType> TRADE_TAGS = List.of(
-            new TradeTagDataType(
-                    TradeTagEnum.TREND_TRADE,
+    public static List<StrategyTagDataType> STRATEGY_TAGS = List.of(
+            new StrategyTagDataType(
+                    StrategyTagEnum.TREND_TRADE,
                     1,
                     "Trend Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.REVERSAL_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.REVERSAL_TRADE,
                     2,
                     "Reversal Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.LIQUIDITY_SWEEP_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.LIQUIDITY_SWEEP_TRADE,
                     3,
                     "Liquidity Sweep Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.BREAKOUT_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.BREAKOUT_TRADE,
                     4,
                     "Breakout Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.FAILED_BREAKOUT_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.FAILED_BREAKOUT_TRADE,
                     5,
                     "Failed Breakout Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.SMC_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.SMC_TRADE,
                     6,
                     "SMC Trade",
                     "",
                     ""
             ),
-            new TradeTagDataType(
-                    TradeTagEnum.NEWS_TRADE,
+            new StrategyTagDataType(
+                    StrategyTagEnum.NEWS_TRADE,
                     7,
                     "News Trade",
                     "",

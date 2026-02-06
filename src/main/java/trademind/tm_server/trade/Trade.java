@@ -1,10 +1,14 @@
 package trademind.tm_server.trade;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import trademind.tm_server.asset.Asset;
 import trademind.tm_server.base.BaseEntity;
 import trademind.tm_server.constants.AppConstants;
+import trademind.tm_server.enums.StrategyTagEnum;
 import trademind.tm_server.enums.TradeDirectionEnum;
 
 import java.time.LocalDateTime;
@@ -34,4 +38,6 @@ public class Trade extends BaseEntity {
     private double lotSize;
     private double pips;
     private double pnl;
+
+    private StrategyTagEnum strategy;
 }

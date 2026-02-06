@@ -28,7 +28,7 @@ public class StaticDataResponse {
     private List<TakeProfitPlacementReasonDataType> takeProfitPlacementReasons;
     private List<EntryTypeDataType> entryTypes;
     private List<SessionDataType> sessions;
-    private List<TradeTagDataType> tradeTags;
+    private List<StrategyTagDataType> strategyTags;
     private List<TradeUpdateDataType> tradeUpdates;
     private List<ExitReasonDataType> exitReasons;
 }

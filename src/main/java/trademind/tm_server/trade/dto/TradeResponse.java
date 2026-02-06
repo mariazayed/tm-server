@@ -1,13 +1,10 @@
 package trademind.tm_server.trade.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import trademind.tm_server.asset.Asset;
 import trademind.tm_server.asset.dto.AssetResponse;
-import trademind.tm_server.asset.repository.AssetRepository;
-import trademind.tm_server.day.Day;
+import trademind.tm_server.enums.StrategyTagEnum;
 import trademind.tm_server.enums.TradeDirectionEnum;
 
 import java.time.LocalDateTime;
@@ -32,5 +29,6 @@ public class TradeResponse {
     private double pips;
     private double pnl;
 
+    private StrategyTagEnum strategy;
     private String notes;
 }
