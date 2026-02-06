@@ -6,7 +6,7 @@ import trademind.tm_server.strictRules.dto.NewStrictRuleRequest;
 import trademind.tm_server.strictRules.dto.StrictRuleResponse;
 
 @Mapper(componentModel = "spring", uses = AssetMapper.class)
-public interface ReminderNoteMapper {
+public interface StrictRuleMapper {
     StrictRuleResponse toResponse(StrictRule strictRule);
 
     StrictRule toEntity(NewStrictRuleRequest request);

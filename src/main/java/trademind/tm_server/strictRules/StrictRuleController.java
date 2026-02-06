@@ -14,7 +14,7 @@ import java.util.List;
 @RequestMapping(AppConstants.URL_STRICT_RULES)
 public class StrictRuleController {
     @Autowired
-    private ReminderNoteService service;
+    private StrictRuleService service;
 
     @PostMapping
     public List<StrictRuleResponse> create(@RequestBody List<NewStrictRuleRequest> requests) {

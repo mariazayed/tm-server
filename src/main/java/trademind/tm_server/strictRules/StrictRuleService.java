@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class ReminderNoteService {
+public class StrictRuleService {
 
     @Autowired
     private StrictRuleRepository repository;
 
     @Autowired
-    private ReminderNoteMapper mapper;
+    private StrictRuleMapper mapper;
 
     private final String tableName = "Strict Rules";
 
