@@ -18,6 +18,7 @@ public final class AppConstants {
     public static final String DB_MEMOIRS = "memoirs";
     public static final String DB_CAPITALS = "capitals";
     public static final String DB_REMINDER_NOTES = "reminder_notes";
+    public static final String DB_STRICT_RULES = "strict_rules";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
@@ -32,6 +33,7 @@ public final class AppConstants {
     public static final String URL_MEMOIR = API_VERSION + "/memoir";
     public static final String URL_CAPITAL = API_VERSION + "/capital";
     public static final String URL_REMINDER_NOTES = API_VERSION + "/reminderNotes";
+    public static final String URL_STRICT_RULES = API_VERSION + "/strictRules";
     public static final String URL_STATIC_DATA = API_VERSION + "/staticData";
 
     // Sub-URL Endpoints
