@@ -19,7 +19,7 @@ public class StrategyService {
     @Autowired
     private StrategyMapper mapper;
 
-    private final String tableName = "Strategies";
+    private final String tableName = "Strategy";
 
     public List<StrategyResponse> create(List<NewStrategyRequest> requests) {
         List<Strategy> strategyEntities = requests.stream()

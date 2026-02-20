@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class NewStrategyRequest {
     @NotNull(message = "Required")
-    private String title;
+    private String name;
 
     @NotNull(message = "Required")
     private String link;

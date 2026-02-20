@@ -21,6 +21,7 @@ import java.util.List;
 @Table(name = AppConstants.DB_STRATEGIES)
 public class Strategy extends BaseEntity {
     private Long id;
+    private String name;
     private String link;
     private List<StrategyTagEnum> tags;
 }

@@ -3,7 +3,7 @@ package trademind.tm_server.strategy.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import trademind.tm_server.staticData.dataTypes.StrategyTagDataType;
+import trademind.tm_server.enums.StrategyTagEnum;
 
 import java.util.List;
 
@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 public class StrategyResponse {
     private Long id;
+    private String name;
     private String link;
-    private List<StrategyTagDataType> tags;
+    private List<StrategyTagEnum> tags;
 }
