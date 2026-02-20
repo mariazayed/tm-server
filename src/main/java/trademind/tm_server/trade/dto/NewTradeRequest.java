@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import trademind.tm_server.enums.StrategyTagEnum;
 import trademind.tm_server.enums.TradeDirectionEnum;
 
 import java.time.LocalDateTime;
@@ -46,7 +45,7 @@ public class NewTradeRequest {
     @NotNull(message = "Required")
     private double pnl;
 
-    private StrategyTagEnum strategy;
+    private Long strategy;
 
     private String notes;
 }

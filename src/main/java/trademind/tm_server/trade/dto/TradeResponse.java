@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import trademind.tm_server.asset.dto.AssetResponse;
-import trademind.tm_server.enums.StrategyTagEnum;
 import trademind.tm_server.enums.TradeDirectionEnum;
+import trademind.tm_server.strategy.dto.StrategyResponse;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +29,6 @@ public class TradeResponse {
     private double pips;
     private double pnl;
 
-    private StrategyTagEnum strategy;
+    private StrategyResponse strategy;
     private String notes;
 }
