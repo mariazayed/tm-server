@@ -31,6 +31,6 @@ public abstract class BaseEntity {
 
     private LocalDateTime deletedAt;
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String notes;
 }
