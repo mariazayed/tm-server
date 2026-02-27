@@ -24,7 +24,7 @@ public class StaticDataController {
                 .probabilities(StaticData.PROBABILITIES)
                 .volatilities(StaticData.VOLATILITIES)
                 .scalingRules(StaticData.SCALING_RULES)
-                .boostRules(StaticData.BOOST_RULES)
+                .scoreList(StaticData.SCORE_LIST)
                 .stopLossPlacementReasons(StaticData.STOP_LOSS_PLACEMENT_REASONS)
                 .takeProfitPlacementReasons(StaticData.TAKE_PROFIT_PLACEMENT_REASONS)
                 .entryTypes(StaticData.ENTRY_TYPES)

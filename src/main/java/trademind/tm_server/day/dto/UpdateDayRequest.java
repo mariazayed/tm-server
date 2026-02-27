@@ -2,10 +2,10 @@ package trademind.tm_server.day.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import trademind.tm_server.enums.DayOfWeekEnum;
+import trademind.tm_server.enums.ScoreEnum;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +17,8 @@ public class UpdateDayRequest {
     private LocalDateTime date;
 
     private DayOfWeekEnum dayOfWeek;
+
+    private ScoreEnum psychologyRate;
 
     private boolean ended;
 

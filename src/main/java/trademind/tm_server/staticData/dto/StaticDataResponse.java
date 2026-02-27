@@ -23,7 +23,7 @@ public class StaticDataResponse {
     private List<ProbabilityDataType> probabilities;
     private List<VolatilityDataType> volatilities;
     private List<ScalingRuleDataType> scalingRules;
-    private List<BoostRuleDataType> boostRules;
+    private List<ScoreDataType> scoreList;
     private List<StopLossPlacementReasonDataType> stopLossPlacementReasons;
     private List<TakeProfitPlacementReasonDataType> takeProfitPlacementReasons;
     private List<EntryTypeDataType> entryTypes;

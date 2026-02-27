@@ -380,7 +380,7 @@ public class StaticData {
             )
     );
 
-    public static final List<BoostRuleDataType> BOOST_RULES = List.of();
+    public static final List<ScoreDataType> SCORE_LIST = List.of();
 
     public static final List<StopLossPlacementReasonDataType> STOP_LOSS_PLACEMENT_REASONS = List.of(
             new StopLossPlacementReasonDataType(
