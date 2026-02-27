@@ -6,10 +6,8 @@ import trademind.tm_server.day.dto.DayResponse;
 import trademind.tm_server.day.dto.NewDayRequest;
 import trademind.tm_server.day.dto.UpdateDayRequest;
 import trademind.tm_server.day.repository.DayRepository;
-import trademind.tm_server.enums.DayOfWeekEnum;
 import trademind.tm_server.exceptions.BadRequestException;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
-import trademind.tm_server.memoir.Memoir;
 
 import java.time.LocalDateTime;
 import java.util.List;
