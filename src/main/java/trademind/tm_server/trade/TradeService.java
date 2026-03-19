@@ -2,7 +2,6 @@ package trademind.tm_server.trade;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import trademind.tm_server.asset.AssetLookupMapper;
 import trademind.tm_server.capital.CapitalService;
 import trademind.tm_server.capital.dto.NewCapitalRequest;
 import trademind.tm_server.enums.CapitalReasonEnum;
@@ -12,6 +11,7 @@ import trademind.tm_server.trade.dto.TradeResponse;
 import trademind.tm_server.trade.repository.TradeRepository;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -53,9 +53,10 @@ public class TradeService {
     }
 
     public List<TradeResponse> getAll() {
-        List<Trade> tradePlanList = repository.findByDeletedAtIsNull();
+        List<Trade> data = repository.findByDeletedAtIsNull();
 
-        return tradePlanList.stream()
+        return data.stream()
+                .sorted(Comparator.comparing(Trade::getCreatedAt).reversed())
                 .map(mapper::toResponse)
                 .toList();
     }
