@@ -25,6 +25,7 @@ public class StaticDataController {
                 .volatilities(StaticData.VOLATILITIES)
                 .scalingRules(StaticData.SCALING_RULES)
                 .scoreList(StaticData.SCORE_LIST)
+                .mistakeTags(StaticData.MISTAKE_TAGS)
                 .stopLossPlacementReasons(StaticData.STOP_LOSS_PLACEMENT_REASONS)
                 .takeProfitPlacementReasons(StaticData.TAKE_PROFIT_PLACEMENT_REASONS)
                 .entryTypes(StaticData.ENTRY_TYPES)

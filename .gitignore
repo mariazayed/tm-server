@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets (never commit real DB credentials) ###
+application-local.properties

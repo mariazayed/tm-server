@@ -23,5 +23,6 @@ import java.time.LocalDateTime;
 public class Capital extends BaseEntity {
     private LocalDateTime dateTime;
     private double amount;
+    @Enumerated(EnumType.STRING)
     private CapitalReasonEnum reason;
 }

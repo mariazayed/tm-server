@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.trade.dto.NewTradeRequest;
 import trademind.tm_server.trade.dto.TradeResponse;
+import trademind.tm_server.ai.AiSuggestionService;
+import trademind.tm_server.trade.dto.TradeReviewRequest;
 
 import java.util.List;
 
@@ -14,6 +16,9 @@ import java.util.List;
 public class TradeController {
     @Autowired
     private TradeService service;
+
+    @Autowired
+    private AiSuggestionService aiSuggestionService;
 
     @PostMapping
     public List<TradeResponse> create(@RequestBody List<NewTradeRequest> requests) {
@@ -28,5 +33,18 @@ public class TradeController {
     @GetMapping(AppConstants.SUB_URL_ID_PARAM)
     public TradeResponse getById(@PathVariable Long id) {
         return service.getOneById(id);
+    }
+
+    @PatchMapping(AppConstants.SUB_URL_REVIEW)
+    public TradeResponse review(@PathVariable Long id, @RequestBody TradeReviewRequest request) {
+        return service.review(id, request);
+    }
+
+    // Phase 5: explicit, cost-gated AI-suggestion pass -- never called
+    // automatically, only ever fills fields that are still null, and never
+    // touches a trade that's already been reviewed. See AiSuggestionService.
+    @PostMapping(AppConstants.SUB_URL_SUGGEST)
+    public TradeResponse suggest(@PathVariable Long id) {
+        return aiSuggestionService.suggest(id);
     }
 }

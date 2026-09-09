@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 public enum SessionEnum {
-    NEW_YORK_SESSION(2),
+    NEW_YORK_SESSION(1),
     LONDON_SESSION(2),
     ASIAN_SESSION(3);
 

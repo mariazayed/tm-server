@@ -26,4 +26,13 @@ public class Asset extends BaseEntity {
     @OneToMany(mappedBy = "asset", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Trade> trades;
 
+    // Units per 1.0 lot -- e.g. 100000 for a standard forex lot, 1 for a
+    // direct share, 100 for a typical options contract. Powers
+    // TradeEnrichmentService's risk-in-currency calculations; left null
+    // until set, in which case risk fields are simply skipped rather than
+    // guessed. Only accurate when the account's currency matches the
+    // asset's quote currency (e.g. a USD account trading XXX/USD pairs) --
+    // a cross-currency account would need a conversion step this doesn't
+    // attempt.
+    private Double contractSize;
 }

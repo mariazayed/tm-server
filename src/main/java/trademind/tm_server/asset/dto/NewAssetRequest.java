@@ -15,4 +15,6 @@ public class NewAssetRequest {
 
     @NotNull(message = "Asset symbol is required")
     private String symbol;
+
+    private Double contractSize;
 }

@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class UpdateAssetRequest {
     private String name;
     private String symbol;
+    private Double contractSize;
 }

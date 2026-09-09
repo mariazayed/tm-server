@@ -24,6 +24,7 @@ public class StaticDataResponse {
     private List<VolatilityDataType> volatilities;
     private List<ScalingRuleDataType> scalingRules;
     private List<ScoreDataType> scoreList;
+    private List<MistakeTagDataType> mistakeTags;
     private List<StopLossPlacementReasonDataType> stopLossPlacementReasons;
     private List<TakeProfitPlacementReasonDataType> takeProfitPlacementReasons;
     private List<EntryTypeDataType> entryTypes;

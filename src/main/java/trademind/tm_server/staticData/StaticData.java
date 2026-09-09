@@ -16,7 +16,7 @@ public class StaticData {
             ),
             new TradeDirectionDataType(
                     TradeDirectionEnum.SHORT,
-                    1,
+                    2,
                     "Sell",
                     "بيع",
                     ""
@@ -318,14 +318,14 @@ public class StaticData {
             ),
             new ProbabilityDataType(
                     ProbabilityEnum.MEDIUM,
-                    1,
+                    2,
                     "Medium",
                     "",
                     ""
             ),
             new ProbabilityDataType(
                     ProbabilityEnum.LOW,
-                    1,
+                    3,
                     "Low",
                     "",
                     ""
@@ -342,14 +342,14 @@ public class StaticData {
             ),
             new VolatilityDataType(
                     VolatilityEnum.MEDIUM,
-                    1,
+                    2,
                     "Medium",
                     "",
                     ""
             ),
             new VolatilityDataType(
                     VolatilityEnum.LOW,
-                    1,
+                    3,
                     "Low",
                     "",
                     ""
@@ -380,7 +380,165 @@ public class StaticData {
             )
     );
 
-    public static final List<ScoreDataType> SCORE_LIST = List.of();
+    public static final List<ScoreDataType> SCORE_LIST = List.of(
+            new ScoreDataType(
+                    ScoreEnum.TERRIBLE,
+                    1,
+                    "Terrible",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.VERY_POOR,
+                    2,
+                    "Very Poor",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.POOR,
+                    3,
+                    "Poor",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.BELOW_AVERAGE,
+                    4,
+                    "Below Average",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.AVERAGE,
+                    5,
+                    "Average",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.ABOVE_AVERAGE,
+                    6,
+                    "Above Average",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.GOOD,
+                    7,
+                    "Good",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.VERY_GOOD,
+                    8,
+                    "Very Good",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.EXCELLENT,
+                    9,
+                    "Excellent",
+                    "",
+                    ""
+            ),
+            new ScoreDataType(
+                    ScoreEnum.WORLD_CLASS,
+                    10,
+                    "World Class",
+                    "",
+                    ""
+            )
+    );
+
+    public static final List<MistakeTagDataType> MISTAKE_TAGS = List.of(
+            new MistakeTagDataType(
+                    MistakeTagEnum.MOVED_SL_AGAINST_PLAN,
+                    1,
+                    "Moved SL Against Plan",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.OVERSIZED_POSITION,
+                    2,
+                    "Oversized Position",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.REVENGE_TRADE,
+                    3,
+                    "Revenge Trade",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.FOMO_ENTRY,
+                    4,
+                    "FOMO Entry",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.NO_CONFIRMATION_WAITED,
+                    5,
+                    "No Confirmation Waited",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.IGNORED_NEWS_EVENT,
+                    6,
+                    "Ignored News Event",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.EXITED_TOO_EARLY,
+                    7,
+                    "Exited Too Early",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.EXITED_TOO_LATE,
+                    8,
+                    "Exited Too Late",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.OVERTRADING,
+                    9,
+                    "Overtrading",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.BROKE_STRICT_RULE,
+                    10,
+                    "Broke Strict Rule",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.CHASED_ENTRY,
+                    11,
+                    "Chased Entry",
+                    "",
+                    ""
+            ),
+            new MistakeTagDataType(
+                    MistakeTagEnum.NO_STOP_LOSS,
+                    12,
+                    "No Stop Loss",
+                    "",
+                    ""
+            )
+    );
 
     public static final List<StopLossPlacementReasonDataType> STOP_LOSS_PLACEMENT_REASONS = List.of(
             new StopLossPlacementReasonDataType(
@@ -438,28 +596,28 @@ public class StaticData {
             ),
             new TakeProfitPlacementReasonDataType(
                     TakeProfitPlacementReasonEnum.LIQUIDITY_SWEEP,
-                    1,
+                    2,
                     "Liquidity Sweep",
                     "",
                     ""
             ),
             new TakeProfitPlacementReasonDataType(
                     TakeProfitPlacementReasonEnum.MAJOR_LEVEL,
-                    1,
+                    3,
                     "Major Level",
                     "",
                     ""
             ),
             new TakeProfitPlacementReasonDataType(
                     TakeProfitPlacementReasonEnum.RISK_MULTIPLE_ACHIEVED,
-                    1,
+                    4,
                     "Risk Multiple Achieved",
                     "",
                     ""
             ),
             new TakeProfitPlacementReasonDataType(
                     TakeProfitPlacementReasonEnum.OPPOSING_OB,
-                    1,
+                    5,
                     "Opposing OB",
                     "",
                     ""

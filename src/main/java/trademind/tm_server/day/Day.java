@@ -3,6 +3,8 @@ package trademind.tm_server.day;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,6 +30,7 @@ public class Day extends BaseEntity {
     private LocalDateTime date;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private DayOfWeekEnum dayOfWeek;
 
     @Column(nullable = false)
@@ -39,5 +42,6 @@ public class Day extends BaseEntity {
     @Column(nullable = false)
     private boolean weekend;
 
+    @Enumerated(EnumType.STRING)
     private ScoreEnum psychologyRate;
 }

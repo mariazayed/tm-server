@@ -77,8 +77,14 @@ public class AssetService {
             asset.setSymbol(symbol);
         }
 
-        Asset assetEntity = mapper.toEntity(assetDetails);
-        Asset savedAsset = repository.save(assetEntity);
+        if (assetDetails.getContractSize() != null) {
+            asset.setContractSize(assetDetails.getContractSize());
+        }
+
+        // NOTE (Phase 3 fix): this used to save a fresh mapper.toEntity(assetDetails)
+        // here instead of the fetched-and-mutated `asset` above -- that object has
+        // no id, so save() would insert a duplicate row rather than update this one.
+        Asset savedAsset = repository.save(asset);
         return mapper.toResponse(savedAsset);
     }
 

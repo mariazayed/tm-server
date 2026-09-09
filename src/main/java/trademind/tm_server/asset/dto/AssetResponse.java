@@ -12,4 +12,5 @@ public class AssetResponse {
     private Long id;
     private String name;
     private String symbol;
+    private Double contractSize;
 }

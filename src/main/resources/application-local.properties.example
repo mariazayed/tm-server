@@ -1,0 +1,14 @@
+# Copy this file to application-local.properties (already in .gitignore) and fill
+# in your real local database credentials. Activate it with the "local" Spring
+# profile -- see the comment at the top of application-local.properties, or the
+# README, for how.
+spring.datasource.username=postgres
+spring.datasource.password=your_password_here
+
+# AI suggestions (Phase 5) -- uncomment and fill in to enable POST
+# /api/v1/trade/{id}/suggest. Get an API key from console.anthropic.com;
+# set the model to whatever current Claude model your key has access to
+# (see docs.claude.com/en/docs/about-claude/models for the current list --
+# intentionally not hardcoded here since model ids change over time).
+# ai.provider.api-key=sk-ant-...
+# ai.provider.model=
