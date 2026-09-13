@@ -8,6 +8,9 @@ import trademind.tm_server.capital.dto.CapitalResponse;
 import trademind.tm_server.capital.repository.CapitalRepository;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CapitalService {
@@ -21,7 +24,30 @@ public class CapitalService {
     private final String tableName = "Capital";
 
     public List<CapitalResponse> create(List<NewCapitalRequest> requests) {
-        List<Capital> capitalEntities = requests.stream()
+        // Same externalId dedupe as TradeService.create(): the MT5 importer's
+        // balance-operation import (deposits/withdrawals) sets externalId to
+        // the broker deal ticket, so re-running it over an overlapping date
+        // range never double-books a deposit/withdrawal. Manual dashboard
+        // entries and the PROFIT/LOSS rows TradeService.create() books
+        // alongside a trade never set externalId, so they're always "new".
+        List<String> incomingExternalIds = requests.stream()
+                .map(NewCapitalRequest::getExternalId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        Set<String> existingExternalIds = incomingExternalIds.isEmpty()
+                ? Set.of()
+                : repository.findByExternalIdIn(incomingExternalIds).stream()
+                    .map(Capital::getExternalId)
+                    .collect(Collectors.toSet());
+
+        List<NewCapitalRequest> newRequests = filterNewRequests(requests, existingExternalIds);
+
+        if (newRequests.isEmpty()) {
+            return List.of();
+        }
+
+        List<Capital> capitalEntities = newRequests.stream()
                 .map(mapper::toEntity)
                 .toList();
 
@@ -29,6 +55,18 @@ public class CapitalService {
 
         return savedCapitals.stream()
                 .map(mapper::toResponse)
+                .toList();
+    }
+
+    // Pure filter, extracted for direct unit testing without a Spring context
+    // or a real repository -- mirrors TradeService.filterNewRequests exactly.
+    // A request survives if it either has no externalId (manual entry, or a
+    // PROFIT/LOSS row derived from a trade) or its externalId isn't among the
+    // ones the batch dedupe query already found in the DB.
+    static List<NewCapitalRequest> filterNewRequests(List<NewCapitalRequest> requests, Set<String> existingExternalIds) {
+        return requests.stream()
+                .filter(request -> request.getExternalId() == null
+                        || !existingExternalIds.contains(request.getExternalId()))
                 .toList();
     }
 

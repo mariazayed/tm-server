@@ -17,4 +17,5 @@ public class CapitalResponse {
     private double amount;
     private CapitalReasonEnum reason;
     private String notes;
+    private String externalId;
 }

@@ -25,4 +25,5 @@ public class Capital extends BaseEntity {
     private double amount;
     @Enumerated(EnumType.STRING)
     private CapitalReasonEnum reason;
+    private String externalId;
 }

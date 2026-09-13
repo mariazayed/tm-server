@@ -25,4 +25,9 @@ public class NewCapitalRequest {
     private CapitalReasonEnum reason;
 
     private String notes;
+
+    // Broker-side dedupe key (MT5 balance-operation deal ticket). Optional --
+    // manual dashboard entries and the PROFIT/LOSS rows TradeService.create()
+    // books alongside a trade never set this.
+    private String externalId;
 }
