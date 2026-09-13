@@ -21,6 +21,7 @@ public final class AppConstants {
     public static final String DB_STRATEGIES = "strategies";
     public static final String DB_STRICT_RULES = "strict_rules";
     public static final String DB_GOALS = "goals";
+    public static final String DB_DECISIONS = "decisions";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
@@ -38,6 +39,7 @@ public final class AppConstants {
     public static final String URL_REMINDER_NOTES = API_VERSION + "/reminderNotes";
     public static final String URL_STRICT_RULES = API_VERSION + "/strictRules";
     public static final String URL_GOAL = API_VERSION + "/goal";
+    public static final String URL_DECISION = API_VERSION + "/decision";
     public static final String URL_STRATEGIES = API_VERSION + "/strategies";
     public static final String URL_STATIC_DATA = API_VERSION + "/staticData";
 

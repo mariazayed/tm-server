@@ -60,6 +60,14 @@ public class SearchResponse<T> {
     private long totalElements;
 
     @Schema(
+            description = "Total number of rows matching the search criteria across all pages. " +
+                    "Same value as totalElements, exposed under this name as well for consumers " +
+                    "that expect it.",
+            example = "100"
+    )
+    private long totalResultRows;
+
+    @Schema(
             description = "Total number of pages available based on size and totalElements",
             example = "10"
     )
@@ -91,7 +99,9 @@ public class SearchResponse<T> {
      * @return SearchResponse with success status and provided data
      */
     public static <T> SearchResponse<T> success(List<T> data, int page, int size, long totalElements, int totalPages, boolean last) {
-        return new SearchResponse<>("success", data, page, size, totalElements, totalPages, last, null);
+        // totalElements passed twice: once for the totalElements field, once for
+        // totalResultRows (kept in sync -- see its @Schema doc above).
+        return new SearchResponse<>("success", data, page, size, totalElements, totalElements, totalPages, last, null);
     }
 
     /**
@@ -103,6 +113,6 @@ public class SearchResponse<T> {
      * @return SearchResponse with error status and provided error message
      */
     public static <T> SearchResponse<T> error(String message) {
-        return new SearchResponse<>("error", null, 0, 0, 0, 0, false, message);
+        return new SearchResponse<>("error", null, 0, 0, 0, 0, 0, false, message);
     }
 }
