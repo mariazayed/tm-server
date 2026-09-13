@@ -3,8 +3,10 @@ package trademind.tm_server.goal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.goal.dto.GoalResponse;
+import trademind.tm_server.goal.dto.GoalSearchRequest;
 import trademind.tm_server.goal.dto.NewGoalRequest;
 import trademind.tm_server.goal.dto.UpdateGoalRequest;
 
@@ -41,5 +43,10 @@ public class GoalController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(AppConstants.SUB_URL_SEARCH)
+    public SearchResponse<GoalResponse> search(@RequestBody GoalSearchRequest request) {
+        return service.search(request);
     }
 }

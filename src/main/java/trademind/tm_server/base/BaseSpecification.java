@@ -30,6 +30,14 @@ public class BaseSpecification<T> implements Specification<T> {
                 if (value != null) {
                     if (value instanceof String) {
                         predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toString().toLowerCase() + "%"));
+                    } else if (value instanceof java.util.Collection<?> values) {
+                        // e.g. CapitalSearchRequest's `reasons` list -- lets a
+                        // caller filter to a small set of enum values (DEPOSIT,
+                        // WITHDRAW) in one query instead of one equality filter
+                        // per value or pulling everything and filtering client-side.
+                        if (!values.isEmpty()) {
+                            predicates.add(root.get(field).in(values));
+                        }
                     } else {
                         predicates.add(cb.equal(root.get(field), value));
                     }

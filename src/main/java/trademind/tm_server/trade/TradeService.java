@@ -3,6 +3,8 @@ package trademind.tm_server.trade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import trademind.tm_server.base.BaseSearchService;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.capital.CapitalService;
 import trademind.tm_server.capital.dto.NewCapitalRequest;
 import trademind.tm_server.enums.CapitalReasonEnum;
@@ -11,12 +13,16 @@ import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.trade.dto.NewTradeRequest;
 import trademind.tm_server.trade.dto.TradeResponse;
 import trademind.tm_server.trade.dto.TradeReviewRequest;
+import trademind.tm_server.trade.dto.TradeSearchRequest;
 import trademind.tm_server.trade.repository.TradeRepository;
+import trademind.tm_server.trade.repository.TradeSearchRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,6 +32,9 @@ public class TradeService {
 
     @Autowired
     private TradeRepository repository;
+
+    @Autowired
+    private TradeSearchRepository searchRepository;
 
     @Autowired
     private CapitalService capitalService;
@@ -153,6 +162,19 @@ public class TradeService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         return mapper.toResponse(tradePlan);
+    }
+
+    // Real, server-side pagination -- the Trade List, Trade Journal and
+    // Trade Review screens page through this instead of getAll() pulling
+    // the entire (continuously auto-imported) trade history into memory on
+    // every visit. No extra filters yet; see TradeSearchRequest.
+    public SearchResponse<TradeResponse> search(TradeSearchRequest request) {
+        Map<String, Object> filters = new HashMap<>();
+        Map<String, String> relationFilters = new HashMap<>();
+
+        BaseSearchService<Trade> baseService = new BaseSearchService<>(searchRepository);
+
+        return baseService.search(request, filters, relationFilters, mapper::toResponse);
     }
 
     // Partial update for the review flow: only the AI-suggested/manual fields a

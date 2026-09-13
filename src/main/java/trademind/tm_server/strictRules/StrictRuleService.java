@@ -2,19 +2,28 @@ package trademind.tm_server.strictRules;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import trademind.tm_server.base.BaseSearchService;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.strictRules.dto.NewStrictRuleRequest;
 import trademind.tm_server.strictRules.dto.StrictRuleResponse;
+import trademind.tm_server.strictRules.dto.StrictRuleSearchRequest;
 import trademind.tm_server.strictRules.repository.StrictRuleRepository;
+import trademind.tm_server.strictRules.repository.StrictRuleSearchRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class StrictRuleService {
 
     @Autowired
     private StrictRuleRepository repository;
+
+    @Autowired
+    private StrictRuleSearchRepository searchRepository;
 
     @Autowired
     private StrictRuleMapper mapper;
@@ -53,5 +62,16 @@ public class StrictRuleService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
         object.setDeletedAt(LocalDateTime.now());
         repository.save(object);
+    }
+
+    // Real, server-side pagination, added mainly for consistency with the
+    // other list screens (strict-rule counts are typically small).
+    public SearchResponse<StrictRuleResponse> search(StrictRuleSearchRequest request) {
+        Map<String, Object> filters = new HashMap<>();
+        Map<String, String> relationFilters = new HashMap<>();
+
+        BaseSearchService<StrictRule> baseService = new BaseSearchService<>(searchRepository);
+
+        return baseService.search(request, filters, relationFilters, mapper::toResponse);
     }
 }

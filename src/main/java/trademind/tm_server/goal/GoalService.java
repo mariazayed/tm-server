@@ -2,6 +2,8 @@ package trademind.tm_server.goal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import trademind.tm_server.base.BaseSearchService;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.capital.Capital;
 import trademind.tm_server.capital.repository.CapitalRepository;
 import trademind.tm_server.day.Day;
@@ -11,16 +13,20 @@ import trademind.tm_server.enums.GoalStatusEnum;
 import trademind.tm_server.enums.ScoreEnum;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.goal.dto.GoalResponse;
+import trademind.tm_server.goal.dto.GoalSearchRequest;
 import trademind.tm_server.goal.dto.NewGoalRequest;
 import trademind.tm_server.goal.dto.UpdateGoalRequest;
 import trademind.tm_server.goal.repository.GoalRepository;
+import trademind.tm_server.goal.repository.GoalSearchRepository;
 import trademind.tm_server.trade.Trade;
 import trademind.tm_server.trade.repository.TradeRepository;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Goal progress is never stored - it's computed fresh on every read from the
@@ -32,6 +38,9 @@ public class GoalService {
 
     @Autowired
     private GoalRepository repository;
+
+    @Autowired
+    private GoalSearchRepository searchRepository;
 
     @Autowired
     private GoalMapper mapper;
@@ -93,6 +102,19 @@ public class GoalService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
         goal.setDeletedAt(LocalDateTime.now());
         repository.save(goal);
+    }
+
+    // Real, server-side pagination, added mainly for consistency with the
+    // other list screens (goal counts are typically small). Routed through
+    // toComputedResponse so paginated results still carry the computed
+    // progress fields, same as getAll().
+    public SearchResponse<GoalResponse> search(GoalSearchRequest request) {
+        Map<String, Object> filters = new HashMap<>();
+        Map<String, String> relationFilters = new HashMap<>();
+
+        BaseSearchService<Goal> baseService = new BaseSearchService<>(searchRepository);
+
+        return baseService.search(request, filters, relationFilters, this::toComputedResponse);
     }
 
     private GoalResponse toComputedResponse(Goal goal) {

@@ -2,9 +2,11 @@ package trademind.tm_server.trade;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.trade.dto.NewTradeRequest;
 import trademind.tm_server.trade.dto.TradeResponse;
+import trademind.tm_server.trade.dto.TradeSearchRequest;
 import trademind.tm_server.ai.AiSuggestionService;
 import trademind.tm_server.trade.dto.TradeReviewRequest;
 
@@ -33,6 +35,13 @@ public class TradeController {
     @GetMapping(AppConstants.SUB_URL_ID_PARAM)
     public TradeResponse getById(@PathVariable Long id) {
         return service.getOneById(id);
+    }
+
+    // Paginated fetch for the Trade List/Journal/Review screens -- see
+    // TradeService.search().
+    @PostMapping(AppConstants.SUB_URL_SEARCH)
+    public SearchResponse<TradeResponse> search(@RequestBody TradeSearchRequest request) {
+        return service.search(request);
     }
 
     @PatchMapping(AppConstants.SUB_URL_REVIEW)

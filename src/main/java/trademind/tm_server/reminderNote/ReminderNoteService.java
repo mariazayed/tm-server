@@ -2,19 +2,28 @@ package trademind.tm_server.reminderNote;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import trademind.tm_server.base.BaseSearchService;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.reminderNote.dto.ReminderNoteResponse;
 import trademind.tm_server.reminderNote.dto.NewReminderNoteRequest;
+import trademind.tm_server.reminderNote.dto.ReminderNoteSearchRequest;
 import trademind.tm_server.reminderNote.repository.ReminderNoteRepository;
+import trademind.tm_server.reminderNote.repository.ReminderNoteSearchRepository;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReminderNoteService {
 
     @Autowired
     private ReminderNoteRepository repository;
+
+    @Autowired
+    private ReminderNoteSearchRepository searchRepository;
 
     @Autowired
     private ReminderNoteMapper mapper;
@@ -53,5 +62,16 @@ public class ReminderNoteService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
         object.setDeletedAt(LocalDateTime.now());
         repository.save(object);
+    }
+
+    // Real, server-side pagination, added mainly for consistency with the
+    // other list screens (reminder-note counts are typically small).
+    public SearchResponse<ReminderNoteResponse> search(ReminderNoteSearchRequest request) {
+        Map<String, Object> filters = new HashMap<>();
+        Map<String, String> relationFilters = new HashMap<>();
+
+        BaseSearchService<ReminderNote> baseService = new BaseSearchService<>(searchRepository);
+
+        return baseService.search(request, filters, relationFilters, mapper::toResponse);
     }
 }

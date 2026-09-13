@@ -2,12 +2,18 @@ package trademind.tm_server.capital;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import trademind.tm_server.base.BaseSearchService;
+import trademind.tm_server.base.SearchResponse;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.capital.dto.NewCapitalRequest;
 import trademind.tm_server.capital.dto.CapitalResponse;
+import trademind.tm_server.capital.dto.CapitalSearchRequest;
 import trademind.tm_server.capital.repository.CapitalRepository;
+import trademind.tm_server.capital.repository.CapitalSearchRepository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,6 +23,9 @@ public class CapitalService {
 
     @Autowired
     private CapitalRepository repository;
+
+    @Autowired
+    private CapitalSearchRepository searchRepository;
 
     @Autowired
     private CapitalMapper mapper;
@@ -83,5 +92,21 @@ public class CapitalService {
                 .orElseThrow(() -> new ResourceNotFoundException(tableName, "id", id));
 
         return mapper.toResponse(capitalPlan);
+    }
+
+    // Real, server-side pagination -- a Capital row is booked for every
+    // deposit/withdraw AND every trade's PROFIT/LOSS, so this list grows
+    // with trade volume too. The Deposits & Withdraws screen pages through
+    // this instead of getAll() pulling the entire history into memory.
+    public SearchResponse<CapitalResponse> search(CapitalSearchRequest request) {
+        Map<String, Object> filters = new HashMap<>();
+        if (request.getReasons() != null && !request.getReasons().isEmpty()) {
+            filters.put("reason", request.getReasons());
+        }
+        Map<String, String> relationFilters = new HashMap<>();
+
+        BaseSearchService<Capital> baseService = new BaseSearchService<>(searchRepository);
+
+        return baseService.search(request, filters, relationFilters, mapper::toResponse);
     }
 }
