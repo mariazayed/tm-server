@@ -6,6 +6,7 @@ import trademind.tm_server.enums.DecisionCategoryEnum;
 import trademind.tm_server.enums.DecisionStatusEnum;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class DecisionResponse {
@@ -22,7 +23,7 @@ public class DecisionResponse {
     private DecisionStatusEnum status;
     private String description;
     private String reasoning;
-    private Integer relatedDecisionNumber;
+    private List<Integer> relatedDecisionNumbers;
     private String notes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

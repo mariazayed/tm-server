@@ -6,6 +6,7 @@ import trademind.tm_server.enums.DecisionCategoryEnum;
 import trademind.tm_server.enums.DecisionStatusEnum;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class UpdateDecisionRequest {
@@ -23,7 +24,7 @@ public class UpdateDecisionRequest {
     private String description;
     private String reasoning;
 
-    private Integer relatedDecisionNumber;
+    private List<Integer> relatedDecisionNumbers;
     private String notes;
 
     // decisionNumber is intentionally NOT here -- it's assigned once on

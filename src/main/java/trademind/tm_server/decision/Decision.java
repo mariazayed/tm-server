@@ -15,6 +15,8 @@ import trademind.tm_server.enums.DecisionCategoryEnum;
 import trademind.tm_server.enums.DecisionStatusEnum;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A single entry in the personal "Decisions Log" -- a running record of
@@ -63,8 +65,8 @@ public class Decision extends BaseEntity {
     @Column(columnDefinition = "text")
     private String reasoning;
 
-    // decisionNumber of an earlier decision this one reconsiders, revises,
-    // or reverses (e.g. Decision 7 reconsiders Decision 6). Null if this
-    // decision doesn't build on a prior one.
-    private Integer relatedDecisionNumber;
+    // decisionNumbers of earlier decisions this one reconsiders, revises,
+    // or reverses. Empty if this decision doesn't build on prior ones.
+    @Column(columnDefinition = "integer[]")
+    private List<Integer> relatedDecisionNumbers = new ArrayList<>();
 }
