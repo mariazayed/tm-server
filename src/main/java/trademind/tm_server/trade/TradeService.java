@@ -1,6 +1,7 @@
 package trademind.tm_server.trade;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import trademind.tm_server.capital.CapitalService;
 import trademind.tm_server.capital.dto.NewCapitalRequest;
@@ -39,9 +40,20 @@ public class TradeService {
 
     public List<TradeResponse> create(List<NewTradeRequest> requests) {
         // Dedupe against externalId (broker-side identifier) in one batch query,
-        // before anything else gets created for these requests -- otherwise a
-        // re-imported overlapping date range would double-book Capital rows even
-        // if the duplicate Trade insert itself were skipped later.
+        // before anything else gets created for these requests. This is the
+        // fast path that makes a normal, sequential re-import (e.g. the MT5
+        // importer re-run over an overlapping --from/--to range) skip
+        // already-imported positions without touching the DB for them again.
+        //
+        // It is NOT sufficient on its own to guarantee a trade is stored only
+        // once under a genuine race -- two import runs (or retries) overlapping
+        // in time could both pass this check before either one commits. The
+        // actual guarantee against that is the partial unique index on
+        // trades.external_id (ux_trades_external_id, see migration
+        // V2__add_trade_analysis_fields.sql). Everything below is built so that
+        // when that index rejects a row, we degrade gracefully -- skip just
+        // that trade and its Capital row -- instead of failing the whole batch
+        // or double-booking a Capital row for a trade that didn't actually save.
         List<String> incomingExternalIds = requests.stream()
                 .map(NewTradeRequest::getExternalId)
                 .filter(Objects::nonNull)
@@ -59,23 +71,21 @@ public class TradeService {
             return List.of();
         }
 
+        List<Trade> savedTrades = new ArrayList<>();
         List<NewCapitalRequest> capitals = new ArrayList<>();
 
+        // Saved and flushed one at a time -- rather than a single
+        // repository.saveAll() for the whole batch -- so that an externalId
+        // which slipped past the pre-filter above (because a concurrent
+        // request inserted it in the window between our check and our insert)
+        // only drops that one trade instead of aborting every trade in this
+        // request, including genuinely new ones bundled alongside it. Its
+        // paired Capital (PROFIT/LOSS) row is only queued once we know the
+        // trade itself actually persisted, so a lost race never double-books
+        // that trade's P&L either.
         for (NewTradeRequest request : newRequests) {
-            NewCapitalRequest capital = new NewCapitalRequest();
-            capital.setAmount(request.getPnl());
-            capital.setDateTime(request.getExitDateTime());
-            capital.setReason(request.getPnl() > 0 ? CapitalReasonEnum.PROFIT : CapitalReasonEnum.LOSS);
-            capitals.add(capital);
-        }
+            Trade trade = mapper.toEntity(request);
 
-        capitalService.create(capitals);
-
-        List<Trade> tradeEntities = newRequests.stream()
-                .map(mapper::toEntity)
-                .toList();
-
-        tradeEntities.forEach(trade -> {
             // Manual entries from the app won't set a source; imported ones will.
             if (trade.getSource() == null) {
                 trade.setSource(TradeSourceEnum.MANUAL);
@@ -84,9 +94,31 @@ public class TradeService {
             // of what the caller sent for session/dayOfWeek/tradeType/
             // riskPercent/plannedRiskReward/rMultiple.
             enrichmentService.enrich(trade);
-        });
 
-        List<Trade> savedTrades = repository.saveAll(tradeEntities);
+            Trade savedTrade;
+            try {
+                savedTrade = repository.saveAndFlush(trade);
+            } catch (DataIntegrityViolationException duplicateExternalId) {
+                // Lost the race: some other request inserted this same
+                // externalId after our batch dedupe check above but before
+                // this insert. ux_trades_external_id is what actually caught
+                // it -- treat it exactly like the pre-filter would have and
+                // move on to the rest of the batch.
+                continue;
+            }
+
+            savedTrades.add(savedTrade);
+
+            NewCapitalRequest capital = new NewCapitalRequest();
+            capital.setAmount(request.getPnl());
+            capital.setDateTime(request.getExitDateTime());
+            capital.setReason(request.getPnl() > 0 ? CapitalReasonEnum.PROFIT : CapitalReasonEnum.LOSS);
+            capitals.add(capital);
+        }
+
+        if (!capitals.isEmpty()) {
+            capitalService.create(capitals);
+        }
 
         return savedTrades.stream()
                 .map(mapper::toResponse)
