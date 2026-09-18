@@ -54,6 +54,7 @@ public final class AppConstants {
     public static final String SUB_URL_BY_TRADE_PARAM = "/byTrade/{tradeId}";
     public static final String SUB_URL_REVIEW = "/{id}/review";
     public static final String SUB_URL_SUGGEST = "/{id}/suggest";
+    public static final String SUB_URL_RECOMPUTE_ENRICHMENT = "/recomputeEnrichment";
 
     // Trade enrichment thresholds (Phase 3) -- single source of truth for
     // TradeEnrichmentService, so behavior is documented and centralized

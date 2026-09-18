@@ -81,6 +81,10 @@ public class AssetService {
             asset.setContractSize(assetDetails.getContractSize());
         }
 
+        if (assetDetails.getPipSize() != null) {
+            asset.setPipSize(assetDetails.getPipSize());
+        }
+
         // NOTE (Phase 3 fix): this used to save a fresh mapper.toEntity(assetDetails)
         // here instead of the fetched-and-mutated `asset` above -- that object has
         // no id, so save() would insert a duplicate row rather than update this one.

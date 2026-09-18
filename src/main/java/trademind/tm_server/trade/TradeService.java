@@ -205,4 +205,20 @@ public class TradeService {
         Trade saved = repository.save(trade);
         return mapper.toResponse(saved);
     }
+
+    // Maintenance pass: re-runs TradeEnrichmentService over every existing
+    // trade and re-saves it. Enrichment only otherwise runs at create() time,
+    // so a trade saved before an asset's pipSize/contractSize was configured
+    // (or corrected) keeps its stale pips/risk figures until something
+    // re-saves it -- this is that something. Safe to call repeatedly: it's
+    // the same deterministic computation create() already does, just applied
+    // to what's already in the table.
+    public int recomputeEnrichment() {
+        List<Trade> trades = repository.findByDeletedAtIsNull();
+        for (Trade trade : trades) {
+            enrichmentService.enrich(trade);
+        }
+        repository.saveAll(trades);
+        return trades.size();
+    }
 }

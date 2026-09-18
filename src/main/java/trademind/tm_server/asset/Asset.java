@@ -35,4 +35,12 @@ public class Asset extends BaseEntity {
     // a cross-currency account would need a conversion step this doesn't
     // attempt.
     private Double contractSize;
+
+    // Price distance that equals 1 pip for this asset -- e.g. 0.0001 for a
+    // 4-decimal forex pair, 0.01 for a 2-decimal JPY pair, 0.1 for XAUUSD.
+    // Powers the pip figure on manually-entered journal trades (the MT5
+    // importer derives this itself from the broker's symbol digits, so it
+    // doesn't need this field). Left null until set, in which case pips are
+    // simply skipped for trades on this asset rather than guessed.
+    private Double pipSize;
 }

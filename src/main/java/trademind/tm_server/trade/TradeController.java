@@ -56,4 +56,14 @@ public class TradeController {
     public TradeResponse suggest(@PathVariable Long id) {
         return aiSuggestionService.suggest(id);
     }
+
+    // Maintenance endpoint: re-applies TradeEnrichmentService to every
+    // existing trade (see TradeService.recomputeEnrichment). Call this after
+    // setting or correcting an asset's pipSize/contractSize so trades saved
+    // before that change pick up the corrected figures too, instead of only
+    // new trades going forward. Returns the number of trades touched.
+    @PostMapping(AppConstants.SUB_URL_RECOMPUTE_ENRICHMENT)
+    public int recomputeEnrichment() {
+        return service.recomputeEnrichment();
+    }
 }
