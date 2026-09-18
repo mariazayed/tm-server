@@ -3,7 +3,6 @@ package trademind.tm_server.trade;
 import org.junit.jupiter.api.Test;
 import trademind.tm_server.enums.DayOfWeekEnum;
 import trademind.tm_server.enums.SessionEnum;
-import trademind.tm_server.enums.TradeDirectionEnum;
 import trademind.tm_server.enums.TradeTypeEnum;
 
 import java.time.LocalDateTime;
@@ -13,9 +12,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 // Exercises the pure calculation methods directly (no Spring context, no
 // mocking) -- these are the package-private statics TradeEnrichmentService
-// delegates to once it has resolved an Asset's contractSize. Deliberately
-// covers the divide-by-zero guards the enrichment plan called for.
+// delegates to for server-owned enrichment. Pips are deliberately absent here:
+// the frontend calculator owns that field and sends it on create.
 class TradeEnrichmentServiceTest {
+    @Test
+    void enrich_preservesCallerProvidedPips() {
+        Trade trade = new Trade();
+        trade.setEntryDateTime(LocalDateTime.of(2026, 9, 9, 10, 0));
+        trade.setExitDateTime(LocalDateTime.of(2026, 9, 9, 10, 30));
+        trade.setPips(42.0);
+
+        new TradeEnrichmentService().enrich(trade);
+
+        assertEquals(42.0, trade.getPips(), 0.0001);
+    }
 
     @Test
     void dayOfWeekFor_mapsJavaDayOfWeekToEnum() {
@@ -47,30 +57,6 @@ class TradeEnrichmentServiceTest {
         // Bad data (exit before entry) -- don't guess a classification for it.
         LocalDateTime entry = LocalDateTime.of(2026, 9, 9, 10, 0);
         assertNull(TradeEnrichmentService.tradeTypeFor(entry, entry.minusMinutes(5)));
-    }
-
-    @Test
-    void pipsFor_usesAssetPipSize_notAHardcodedSymbol() {
-        // 1000 -> 1001 on a 0.1 pip size (XAUUSD) is 10 pips, same figure the
-        // app used to get right only because it hardcoded XAUUSD's own size.
-        assertEquals(10.0, TradeEnrichmentService.pipsFor(1000, 1001, TradeDirectionEnum.LONG, 0.1), 0.0001);
-
-        // Same $1 move, but a 4-decimal forex pip size (0.0001) -- this is the
-        // case that came out wrong (0, or 10x too small) before pips used the
-        // asset's own configured size.
-        assertEquals(100.0, TradeEnrichmentService.pipsFor(1.1000, 1.1100, TradeDirectionEnum.LONG, 0.0001), 0.0001);
-    }
-
-    @Test
-    void pipsFor_isNegativeForALosingLong() {
-        assertEquals(-10.0, TradeEnrichmentService.pipsFor(1.1000, 1.0990, TradeDirectionEnum.LONG, 0.0001), 0.0001);
-    }
-
-    @Test
-    void pipsFor_flipsSignForShort() {
-        // SHORT profits when exit < entry -- a lower exit should be positive pips.
-        assertEquals(10.0, TradeEnrichmentService.pipsFor(1.1000, 1.0990, TradeDirectionEnum.SHORT, 0.0001), 0.0001);
-        assertEquals(-10.0, TradeEnrichmentService.pipsFor(1.1000, 1.1010, TradeDirectionEnum.SHORT, 0.0001), 0.0001);
     }
 
     @Test

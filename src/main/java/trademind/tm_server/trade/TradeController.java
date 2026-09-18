@@ -59,9 +59,9 @@ public class TradeController {
 
     // Maintenance endpoint: re-applies TradeEnrichmentService to every
     // existing trade (see TradeService.recomputeEnrichment). Call this after
-    // setting or correcting an asset's pipSize/contractSize so trades saved
-    // before that change pick up the corrected figures too, instead of only
-    // new trades going forward. Returns the number of trades touched.
+    // setting or correcting an asset's contractSize so trades saved before
+    // that change pick up the corrected risk figures too, instead of only
+    // new trades going forward. Pips are frontend-owned and are not touched.
     @PostMapping(AppConstants.SUB_URL_RECOMPUTE_ENRICHMENT)
     public int recomputeEnrichment() {
         return service.recomputeEnrichment();

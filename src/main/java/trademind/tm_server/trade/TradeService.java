@@ -99,9 +99,8 @@ public class TradeService {
             if (trade.getSource() == null) {
                 trade.setSource(TradeSourceEnum.MANUAL);
             }
-            // Always recomputed server-side -- one source of truth regardless
-            // of what the caller sent for session/dayOfWeek/tradeType/
-            // riskPercent/plannedRiskReward/rMultiple.
+            // Server-owned enrichment only; pips are preserved from the
+            // caller because the frontend calculator is their source of truth.
             enrichmentService.enrich(trade);
 
             Trade savedTrade;
@@ -208,9 +207,10 @@ public class TradeService {
 
     // Maintenance pass: re-runs TradeEnrichmentService over every existing
     // trade and re-saves it. Enrichment only otherwise runs at create() time,
-    // so a trade saved before an asset's pipSize/contractSize was configured
-    // (or corrected) keeps its stale pips/risk figures until something
-    // re-saves it -- this is that something. Safe to call repeatedly: it's
+    // so a trade saved before an asset's contractSize was configured (or
+    // corrected) keeps its stale risk figures until something re-saves it.
+    // Pips are not recomputed here; the frontend calculator owns them. Safe
+    // to call repeatedly: it's
     // the same deterministic computation create() already does, just applied
     // to what's already in the table.
     public int recomputeEnrichment() {

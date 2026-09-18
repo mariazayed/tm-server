@@ -7,21 +7,16 @@ import trademind.tm_server.asset.AssetService;
 import trademind.tm_server.constants.AppConstants;
 import trademind.tm_server.enums.DayOfWeekEnum;
 import trademind.tm_server.enums.SessionEnum;
-import trademind.tm_server.enums.TradeDirectionEnum;
 import trademind.tm_server.enums.TradeTypeEnum;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-// Computes the deterministic fields (session, dayOfWeek, tradeType, pips,
-// riskPercent, plannedRiskReward, rMultiple) once, server-side, regardless of
-// whether the trade came from the MT5 importer or was typed in through the
-// app -- so both sources end up with identical, consistent values instead of
-// duplicating this logic in Python. Called from TradeService.create() before
-// save; it always (re)computes these fields when it has enough data to,
-// overwriting whatever a caller may have sent for them, since they're meant
-// to have exactly one source of truth.
+// Computes deterministic server-owned fields (session, dayOfWeek, tradeType,
+// riskPercent, plannedRiskReward, rMultiple). Pips are intentionally owned by
+// the frontend calculator, which reads the selected Asset row and sends the
+// result on create.
 //
 // accountBalanceAtEntry and MAE/MFE are deliberately NOT computed here -- they
 // need MT5 tick/balance history this backend doesn't have, so the importer
@@ -31,38 +26,17 @@ import java.time.LocalDateTime;
 // tested directly (see TradeEnrichmentServiceTest) without a Spring context.
 @Service
 public class TradeEnrichmentService {
-
     @Autowired
     private AssetService assetService;
 
     public void enrich(Trade trade) {
         applyDayOfWeekAndSession(trade);
         applyTradeType(trade);
-        applyAssetDerivedMetrics(trade);
+        applyRiskMetrics(trade);
     }
 
-    private void applyDayOfWeekAndSession(Trade trade) {
-        if (trade.getEntryDateTime() == null) {
-            return;
-        }
-        trade.setDayOfWeek(dayOfWeekFor(trade.getEntryDateTime()));
-        trade.setSession(sessionFor(trade.getEntryDateTime()));
-    }
-
-    private void applyTradeType(Trade trade) {
-        if (trade.getEntryDateTime() == null || trade.getExitDateTime() == null) {
-            return;
-        }
-        TradeTypeEnum tradeType = tradeTypeFor(trade.getEntryDateTime(), trade.getExitDateTime());
-        if (tradeType != null) {
-            trade.setTradeType(tradeType);
-        }
-    }
-
-    // Pips and the risk fields below both hang off the same Asset row, so it's
-    // fetched once here rather than once per field.
-    private void applyAssetDerivedMetrics(Trade trade) {
-        if (trade.getAsset() == null || trade.getAsset().getId() == null) {
+    private void applyRiskMetrics(Trade trade) {
+        if (trade.getAsset() == null) {
             return;
         }
 
@@ -75,24 +49,7 @@ public class TradeEnrichmentService {
             return;
         }
 
-        applyPips(trade, asset.getPipSize());
-        applyRiskMetrics(trade, asset.getContractSize());
-    }
-
-    // Pips always come from the asset's own pip size -- never a value
-    // hardcoded for one symbol -- so every trade ends up with the same
-    // figure regardless of whether it was typed into the journal or derived
-    // by the MT5 importer from the broker's own symbol digits. Left as
-    // whatever the caller sent (typically 0) when the asset has no pipSize
-    // configured yet, rather than guessed.
-    private void applyPips(Trade trade, Double pipSize) {
-        if (pipSize == null || pipSize <= 0 || trade.getDirection() == null) {
-            return;
-        }
-        trade.setPips(pipsFor(trade.getEntryPrice(), trade.getExitPrice(), trade.getDirection(), pipSize));
-    }
-
-    private void applyRiskMetrics(Trade trade, Double contractSize) {
+        Double contractSize = asset.getContractSize();
         if (contractSize == null || contractSize <= 0) {
             // Asset not configured for risk calc yet -- leave the fields null
             // rather than guess.
@@ -114,6 +71,24 @@ public class TradeEnrichmentService {
         }
 
         trade.setRMultiple(trade.getPnl() / riskAmount);
+    }
+
+    private void applyDayOfWeekAndSession(Trade trade) {
+        if (trade.getEntryDateTime() == null) {
+            return;
+        }
+        trade.setDayOfWeek(dayOfWeekFor(trade.getEntryDateTime()));
+        trade.setSession(sessionFor(trade.getEntryDateTime()));
+    }
+
+    private void applyTradeType(Trade trade) {
+        if (trade.getEntryDateTime() == null || trade.getExitDateTime() == null) {
+            return;
+        }
+        TradeTypeEnum tradeType = tradeTypeFor(trade.getEntryDateTime(), trade.getExitDateTime());
+        if (tradeType != null) {
+            trade.setTradeType(tradeType);
+        }
     }
 
     static DayOfWeekEnum dayOfWeekFor(LocalDateTime entryDateTime) {
@@ -148,17 +123,6 @@ public class TradeEnrichmentService {
             return TradeTypeEnum.INTRADAY;
         }
         return TradeTypeEnum.SWING;
-    }
-
-    // Signed distance between entry and exit, in pips, using the asset's own
-    // pip size rather than a value hardcoded for one symbol. LONG counts a
-    // higher exit price as profit (positive pips); SHORT counts a lower exit
-    // price as profit.
-    static double pipsFor(double entryPrice, double exitPrice, TradeDirectionEnum direction, double pipSize) {
-        double diff = direction == TradeDirectionEnum.SHORT
-                ? entryPrice - exitPrice
-                : exitPrice - entryPrice;
-        return diff / pipSize;
     }
 
     // Notional risk in account-currency terms. Only correct when the account's
