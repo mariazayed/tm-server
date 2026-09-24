@@ -1,6 +1,7 @@
 package trademind.tm_server.day.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,4 +23,6 @@ public class DayResponse {
     private boolean ended;
     private boolean noWork;
     private boolean weekend;
+    @JsonProperty("isImportant")
+    private boolean important;
 }

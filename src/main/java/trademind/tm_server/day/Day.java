@@ -42,6 +42,9 @@ public class Day extends BaseEntity {
     @Column(nullable = false)
     private boolean weekend;
 
+    @Column(name = "is_important", nullable = false)
+    private boolean important;
+
     @Enumerated(EnumType.STRING)
     private ScoreEnum psychologyRate;
 }

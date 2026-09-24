@@ -1,6 +1,7 @@
 package trademind.tm_server.day.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,6 +30,10 @@ public class NewDayRequest {
 
     @NotNull(message = "Required")
     private boolean weekend;
+
+    @NotNull(message = "Required")
+    @JsonProperty("isImportant")
+    private boolean important;
 
     private ScoreEnum psychologyRate;
 
