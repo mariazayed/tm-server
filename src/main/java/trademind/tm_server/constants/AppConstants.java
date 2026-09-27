@@ -26,6 +26,12 @@ public final class AppConstants {
     public static final String DB_QUESTION_ANSWERS = "question_answers";
     public static final String DB_EXPENSE_REASONS = "expense_reasons";
     public static final String DB_EXPENSES = "expenses";
+    public static final String DB_FOCUS_AREAS = "focus_areas";
+    public static final String DB_PLANNER_SETTINGS = "planner_settings";
+    public static final String DB_PLANNER_WEEKS = "planner_weeks";
+    public static final String DB_MONTHLY_OBJECTIVES = "monthly_objectives";
+    public static final String DB_WEEKLY_TASKS = "weekly_tasks";
+    public static final String DB_PLANNER_WEEK_EXTRAS = "planner_week_extras";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
@@ -48,6 +54,7 @@ public final class AppConstants {
     public static final String URL_QUESTION_ANSWERS = API_VERSION + "/questionAnswers";
     public static final String URL_EXPENSE_REASON = API_VERSION + "/expenseReason";
     public static final String URL_EXPENSE = API_VERSION + "/expense";
+    public static final String URL_PLANNER = API_VERSION + "/planner";
     public static final String URL_STRATEGIES = API_VERSION + "/strategies";
     public static final String URL_STATIC_DATA = API_VERSION + "/staticData";
 
