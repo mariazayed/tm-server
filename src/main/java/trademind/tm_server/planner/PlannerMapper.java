@@ -45,6 +45,7 @@ public class PlannerMapper {
         r.setActualHours(task.getActualHours());
         r.setEvaluationNotes(task.getEvaluationNotes());
         r.setSortOrder(task.getSortOrder());
+        r.setExtra(task.isExtra());
         return r;
     }
 

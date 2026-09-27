@@ -5,27 +5,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import trademind.tm_server.enums.PlanItemStatusEnum;
 import trademind.tm_server.exceptions.BadRequestException;
-import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.planner.dto.AreaAllocationResponse;
 import trademind.tm_server.planner.dto.EvaluationSummaryResponse;
 import trademind.tm_server.planner.dto.MonthPlanResponse;
 import trademind.tm_server.planner.dto.MonthlyObjectiveResponse;
 import trademind.tm_server.planner.dto.PlannerOverviewResponse;
 import trademind.tm_server.planner.dto.PlannerSettingsDto;
-import trademind.tm_server.planner.dto.WeekExtraRequest;
 import trademind.tm_server.planner.dto.WeekExtrasRequest;
 import trademind.tm_server.planner.dto.WeekPlanResponse;
 import trademind.tm_server.planner.dto.WeekSnapshotResponse;
 import trademind.tm_server.planner.repository.FocusAreaRepository;
 import trademind.tm_server.planner.repository.MonthlyObjectiveRepository;
 import trademind.tm_server.planner.repository.PlannerSettingsRepository;
-import trademind.tm_server.planner.repository.PlannerWeekExtraRepository;
 import trademind.tm_server.planner.repository.PlannerWeekRepository;
 import trademind.tm_server.planner.repository.WeeklyTaskRepository;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -44,19 +40,24 @@ import java.util.stream.Collectors;
 
 /**
  * Planner capacity and summaries. Nothing here is stored except the
- * settings row, week notes and extra-hour entries -- capacity, per-area
+ * settings row and week notes -- capacity, per-area
  * allocation, evaluation stats and objective roll-ups are computed on every
  * read, so they always match the current tasks/objectives.
  *
  * Capacity rules:
- * - week  = sum of the seven weekday hours + all of that week's extra hours
+ * - week  = sum of the seven weekday hours + that week's extra hours
  * - month = sum of weekday hours over every calendar day of the month
  *           + extra hours of weeks whose Monday falls inside the month
  *
- * Focus Area allowance (the max % budget):
- *   (weekday hours + GENERAL extra hours) x max% + extra hours DEDICATED to
- *   that area. So "+6h Backtesting" only raises Backtesting's budget, while
- *   "+6h general" raises every area's budget in proportion to its max %.
+ * Extra hours are weekly tasks flagged `extra` (V21). Each one is planned
+ * work like any task (it sits in its Focus Area's list, counts in planned
+ * hours, can be evaluated and have time logged) AND adds its estimated
+ * hours to the week's capacity and to its area's budget -- so adding extra
+ * hours never eats into the time left for other tasks.
+ *
+ * Focus Area budget = regular (weekday) hours x max% + that area's extra
+ * hours. Area percentages are reported against that budget, so max % always
+ * refers to the same regular hours it was configured for.
  */
 @Service
 public class PlannerService {
@@ -68,9 +69,6 @@ public class PlannerService {
     private PlannerWeekRepository weekRepository;
 
     @Autowired
-    private PlannerWeekExtraRepository extraRepository;
-
-    @Autowired
     private WeeklyTaskRepository taskRepository;
 
     @Autowired
@@ -78,9 +76,6 @@ public class PlannerService {
 
     @Autowired
     private FocusAreaRepository focusAreaRepository;
-
-    @Autowired
-    private FocusAreaService focusAreaService;
 
     @Autowired
     private PlannerMapper mapper;
@@ -142,74 +137,22 @@ public class PlannerService {
 
     // ------------------------------------------------------------- extra hours
 
-    @Transactional
-    public WeekPlanResponse addExtra(WeekExtraRequest request) {
-        if (request.getWeekStart() == null) throw new BadRequestException("weekStart is required");
-        PlannerWeekExtra extra = new PlannerWeekExtra();
-        extra.setWeekStart(toMonday(request.getWeekStart()));
-        extra.setHours(validExtraHours(request.getHours()));
-        if (request.getFocusAreaId() != null) {
-            extra.setFocusArea(focusAreaService.getOneByIdAsEntity(request.getFocusAreaId()));
-        }
-        extra.setNotes(request.getNote());
-        extraRepository.save(extra);
-        return getWeekPlan(extra.getWeekStart());
-    }
-
-    @Transactional
-    public WeekPlanResponse updateExtra(Long id, WeekExtraRequest request) {
-        PlannerWeekExtra extra = getExtraEntity(id);
-        if (request.getWeekStart() != null) extra.setWeekStart(toMonday(request.getWeekStart()));
-        if (request.getHours() != null) extra.setHours(validExtraHours(request.getHours()));
-        if (Boolean.TRUE.equals(request.getClearFocusArea())) {
-            extra.setFocusArea(null);
-        } else if (request.getFocusAreaId() != null) {
-            extra.setFocusArea(focusAreaService.getOneByIdAsEntity(request.getFocusAreaId()));
-        }
-        if (request.getNote() != null) extra.setNotes(request.getNote());
-        extraRepository.save(extra);
-        return getWeekPlan(extra.getWeekStart());
-    }
-
-    @Transactional
-    public WeekPlanResponse deleteExtra(Long id) {
-        PlannerWeekExtra extra = getExtraEntity(id);
-        extra.setDeletedAt(LocalDateTime.now());
-        extraRepository.save(extra);
-        return getWeekPlan(extra.getWeekStart());
-    }
-
-    private PlannerWeekExtra getExtraEntity(Long id) {
-        return extraRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PlannerWeekExtra", "id", id));
-    }
-
-    private double validExtraHours(Double hours) {
-        if (hours == null || hours <= 0) throw new BadRequestException("Extra hours must be greater than 0");
-        if (hours > 168) throw new BadRequestException("Extra hours cannot exceed a week");
-        return hours;
-    }
-
-    /** General (untagged) extra hours vs hours dedicated to specific areas. */
-    private record ExtraSplit(double general, Map<Long, Double> dedicated, Map<Long, FocusArea> dedicatedAreas) {
+    /** Extra hours per Focus Area, taken from the extra-flagged tasks. */
+    private record ExtraSplit(Map<Long, Double> dedicated, Map<Long, FocusArea> dedicatedAreas) {
         double total() {
-            return general + dedicated.values().stream().mapToDouble(Double::doubleValue).sum();
+            return dedicated.values().stream().mapToDouble(Double::doubleValue).sum();
         }
     }
 
-    private ExtraSplit split(Collection<PlannerWeekExtra> extras) {
-        double general = 0;
+    private ExtraSplit split(Collection<WeeklyTask> tasks) {
         Map<Long, Double> dedicated = new HashMap<>();
         Map<Long, FocusArea> areas = new HashMap<>();
-        for (PlannerWeekExtra e : extras) {
-            if (e.getFocusArea() == null) {
-                general += e.getHours();
-            } else {
-                dedicated.merge(e.getFocusArea().getId(), e.getHours(), Double::sum);
-                areas.putIfAbsent(e.getFocusArea().getId(), e.getFocusArea());
-            }
+        for (WeeklyTask t : tasks) {
+            if (!t.isExtra() || t.getFocusArea() == null) continue;
+            dedicated.merge(t.getFocusArea().getId(), t.getEstimatedHours(), Double::sum);
+            areas.putIfAbsent(t.getFocusArea().getId(), t.getFocusArea());
         }
-        return new ExtraSplit(general, dedicated, areas);
+        return new ExtraSplit(dedicated, areas);
     }
 
     // --------------------------------------------------------------- week plan
@@ -222,13 +165,12 @@ public class PlannerService {
         PlannerWeek week = weekRepository.findByWeekStart(monday)
                 .filter(w -> w.getDeletedAt() == null)
                 .orElse(null);
-        List<PlannerWeekExtra> extras = extraRepository.findByWeekStartAndDeletedAtIsNullOrderByIdAsc(monday);
-        ExtraSplit split = split(extras);
+        List<WeeklyTask> tasks = taskRepository.findByWeekStartAndDeletedAtIsNullOrderBySortOrderAscIdAsc(monday);
+        ExtraSplit split = split(tasks);
 
         double base = settings.weeklyHours();
         double capacity = base + split.total();
 
-        List<WeeklyTask> tasks = taskRepository.findByWeekStartAndDeletedAtIsNullOrderBySortOrderAscIdAsc(monday);
         double planned = sum(tasks, WeeklyTask::getEstimatedHours);
 
         WeekPlanResponse r = new WeekPlanResponse();
@@ -237,7 +179,6 @@ public class PlannerService {
         r.setWorkingDays(settings.weeklyWorkingDays());
         r.setBaseHours(base);
         r.setExtraHours(split.total());
-        r.setExtras(extras.stream().map(mapper::toResponse).toList());
         r.setNotes(week != null ? week.getNotes() : null);
         r.setCapacityHours(capacity);
         r.setPlannedHours(planned);
@@ -251,7 +192,7 @@ public class PlannerService {
                 WeeklyTask::getEstimatedHours,
                 t -> t.getActualHours() != null ? t.getActualHours() : 0,
                 capacity,
-                base + split.general(),
+                base,
                 split));
         r.setEvaluation(evaluationSummary(
                 tasks.stream().map(t -> new Evaluated(t.getStatus(), t.getScore(), t.getEstimatedHours(), t.getActualHours())).toList()));
@@ -288,8 +229,8 @@ public class PlannerService {
             if (h > 0) workingDays++;
         }
 
-        List<PlannerWeekExtra> monthExtras = extraRepository.findByWeekStartBetweenAndDeletedAtIsNull(first, last);
-        ExtraSplit split = split(monthExtras);
+        List<WeeklyTask> monthTasks = taskRepository.findByWeekStartBetweenAndDeletedAtIsNull(first, last);
+        ExtraSplit split = split(monthTasks);
         double capacity = base + split.total();
 
         List<MonthlyObjective> objectives = objectiveRepository
@@ -319,24 +260,19 @@ public class PlannerService {
                 : byId.get(o.getId()).getLinkedCreditedHours();
 
         r.setAreas(allocations(objectives, MonthlyObjective::getFocusArea,
-                MonthlyObjective::getEstimatedHours, actualOf, capacity, base + split.general(), split));
+                MonthlyObjective::getEstimatedHours, actualOf, capacity, base, split));
         r.setEvaluation(evaluationSummary(objectives.stream()
                 .map(o -> new Evaluated(o.getStatus(), o.getScore(), o.getEstimatedHours(), actualOf.applyAsDouble(o)))
                 .toList()));
 
         // Week strip: every week whose Monday falls in this month.
-        List<WeeklyTask> monthTasks = taskRepository.findByWeekStartBetweenAndDeletedAtIsNull(first, last);
         Map<LocalDate, List<WeeklyTask>> tasksByWeek = monthTasks.stream()
                 .collect(Collectors.groupingBy(WeeklyTask::getWeekStart));
-        Map<LocalDate, List<PlannerWeekExtra>> extrasByWeek = monthExtras.stream()
-                .collect(Collectors.groupingBy(PlannerWeekExtra::getWeekStart));
         List<WeekSnapshotResponse> weeks = new ArrayList<>();
         for (LocalDate monday = first.with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
              !monday.isAfter(last);
              monday = monday.plusWeeks(1)) {
-            weeks.add(snapshot(monday, settings,
-                    tasksByWeek.getOrDefault(monday, List.of()),
-                    extrasByWeek.getOrDefault(monday, List.of())));
+            weeks.add(snapshot(monday, settings, tasksByWeek.getOrDefault(monday, List.of())));
         }
         r.setWeeks(weeks);
 
@@ -355,17 +291,12 @@ public class PlannerService {
         PlannerSettings settings = getSettingsEntity();
 
         List<WeeklyTask> windowTasks = taskRepository.findByWeekStartBetweenAndDeletedAtIsNull(firstMonday, thisMonday);
-        List<PlannerWeekExtra> windowExtras = extraRepository.findByWeekStartBetweenAndDeletedAtIsNull(firstMonday, thisMonday);
         Map<LocalDate, List<WeeklyTask>> tasksByWeek = windowTasks.stream()
                 .collect(Collectors.groupingBy(WeeklyTask::getWeekStart));
-        Map<LocalDate, List<PlannerWeekExtra>> extrasByWeek = windowExtras.stream()
-                .collect(Collectors.groupingBy(PlannerWeekExtra::getWeekStart));
 
         List<WeekSnapshotResponse> history = new ArrayList<>();
         for (LocalDate m = firstMonday; !m.isAfter(thisMonday); m = m.plusWeeks(1)) {
-            history.add(snapshot(m, settings,
-                    tasksByWeek.getOrDefault(m, List.of()),
-                    extrasByWeek.getOrDefault(m, List.of())));
+            history.add(snapshot(m, settings, tasksByWeek.getOrDefault(m, List.of())));
         }
 
         PlannerOverviewResponse r = new PlannerOverviewResponse();
@@ -391,22 +322,21 @@ public class PlannerService {
 
         // Focus Area mix over the whole window.
         double windowBase = settings.weeklyHours() * history.size();
-        ExtraSplit split = split(windowExtras);
+        ExtraSplit split = split(windowTasks);
         r.setAreaMix(allocations(
                 windowTasks,
                 WeeklyTask::getFocusArea,
                 WeeklyTask::getEstimatedHours,
                 t -> t.getActualHours() != null ? t.getActualHours() : 0,
                 windowBase + split.total(),
-                windowBase + split.general(),
+                windowBase,
                 split));
 
         return r;
     }
 
-    private WeekSnapshotResponse snapshot(LocalDate monday, PlannerSettings settings,
-                                          List<WeeklyTask> tasks, List<PlannerWeekExtra> extras) {
-        double extra = sum(extras, PlannerWeekExtra::getHours);
+    private WeekSnapshotResponse snapshot(LocalDate monday, PlannerSettings settings, List<WeeklyTask> tasks) {
+        double extra = sum(tasks.stream().filter(WeeklyTask::isExtra).toList(), WeeklyTask::getEstimatedHours);
         WeekSnapshotResponse s = new WeekSnapshotResponse();
         s.setWeekStart(monday);
         s.setExtraHours(extra);
@@ -449,6 +379,8 @@ public class PlannerService {
         List<WeeklyTask> copies = new ArrayList<>();
         for (WeeklyTask t : taskRepository.findByWeekStartAndDeletedAtIsNullOrderBySortOrderAscIdAsc(previous)) {
             if (t.getStatus() == PlanItemStatusEnum.DONE) continue;
+            // Extra hours belong to the week they were added for.
+            if (t.isExtra()) continue;
             if (existingKeys.contains(key(t.getTitle(), t.getFocusArea()))) continue;
 
             WeeklyTask copy = new WeeklyTask();
@@ -530,9 +462,8 @@ public class PlannerService {
 
     /**
      * @param capacity      total capacity of the period (for plannedPct)
-     * @param allowanceBase weekday hours + general extra hours (what max %
-     *                      applies to)
-     * @param extras        dedicated extra hours per area, added on top
+     * @param allowanceBase regular (weekday) hours -- what max % applies to
+     * @param extras        extra hours per area, added on top of its share
      */
     private <T> List<AreaAllocationResponse> allocations(
             List<T> items,

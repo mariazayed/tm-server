@@ -20,4 +20,6 @@ public class WeeklyTaskResponse {
     private Double actualHours;
     private String evaluationNotes;
     private Integer sortOrder;
+    // Extra working hours -- also counted in capacity and its area's budget.
+    private boolean extra;
 }

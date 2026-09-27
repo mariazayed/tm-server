@@ -4,9 +4,10 @@ import lombok.Data;
 
 import java.time.LocalDate;
 
-// POST/PUT /planner/week/extras -- one block of extra hours.
-// focusAreaId null = general time. On update, clearFocusArea=true turns a
-// dedicated block back into general time.
+// POST/PUT /planner/week/extras -- one block of extra hours for a Focus
+// Area. focusAreaId is required on create (same as a task); on update it may
+// be omitted to keep the current area. clearFocusArea is ignored (kept only
+// so older clients don't fail to deserialize).
 @Data
 public class WeekExtraRequest {
     private LocalDate weekStart;

@@ -59,4 +59,10 @@ public class WeeklyTask extends BaseEntity {
 
     @Column(nullable = false)
     private Integer sortOrder = 0;
+
+    // Extra working hours (V21): counts as planned work like any task, and
+    // its estimatedHours are also added to the week's capacity and to its
+    // Focus Area's budget.
+    @Column(nullable = false)
+    private boolean extra = false;
 }

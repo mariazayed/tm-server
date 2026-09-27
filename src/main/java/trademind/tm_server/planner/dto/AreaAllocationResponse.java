@@ -12,7 +12,8 @@ public class AreaAllocationResponse {
     private double plannedPct;
     private double actualPct;
     private double maxPercent;
-    // Extra hours dedicated to this area (already included in allowedHours).
+    // Extra hours logged for this area (already included in allowedHours and,
+    // since they are tasks, in plannedHours).
     private double extraHours;
     private double allowedHours;
     private boolean overLimit;

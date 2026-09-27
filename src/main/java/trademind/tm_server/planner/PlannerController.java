@@ -13,7 +13,6 @@ import trademind.tm_server.planner.dto.MonthlyObjectiveRequest;
 import trademind.tm_server.planner.dto.MonthlyObjectiveResponse;
 import trademind.tm_server.planner.dto.PlannerOverviewResponse;
 import trademind.tm_server.planner.dto.PlannerSettingsDto;
-import trademind.tm_server.planner.dto.WeekExtraRequest;
 import trademind.tm_server.planner.dto.WeekExtrasRequest;
 import trademind.tm_server.planner.dto.WeekPlanResponse;
 import trademind.tm_server.planner.dto.WeeklyTaskRequest;
@@ -33,9 +32,7 @@ import java.util.List;
  *   DELETE /focusAreas/{id}
  *   GET    /week?weekStart=yyyy-MM-dd     full week view (capacity, tasks, allocation, evaluation)
  *   PUT    /week                          note for a week
- *   POST   /week/extras                   add extra hours (general or for one Focus Area)
- *   PUT    /week/extras/{id}
- *   DELETE /week/extras/{id}               (extras endpoints return the refreshed week)
+ *   (extra hours are weekly tasks created with "extra": true via POST /tasks)
  *   POST   /week/carryOver?weekStart=     copy last week's unfinished tasks
  *   GET    /month?year=&month=            full month view
  *   GET    /overview?weeks=8              Home dashboard summary (week, month, history, streaks)
@@ -108,21 +105,6 @@ public class PlannerController {
     @PutMapping("/week")
     public WeekPlanResponse updateWeek(@RequestBody WeekExtrasRequest request) {
         return plannerService.updateWeekNotes(request);
-    }
-
-    @PostMapping("/week/extras")
-    public WeekPlanResponse addExtra(@RequestBody WeekExtraRequest request) {
-        return plannerService.addExtra(request);
-    }
-
-    @PutMapping("/week/extras/{id}")
-    public WeekPlanResponse updateExtra(@PathVariable Long id, @RequestBody WeekExtraRequest request) {
-        return plannerService.updateExtra(id, request);
-    }
-
-    @DeleteMapping("/week/extras/{id}")
-    public WeekPlanResponse deleteExtra(@PathVariable Long id) {
-        return plannerService.deleteExtra(id);
     }
 
     @PostMapping("/week/carryOver")

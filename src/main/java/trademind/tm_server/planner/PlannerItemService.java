@@ -54,6 +54,11 @@ public class PlannerItemService {
         task.setFocusArea(focusAreaService.getOneByIdAsEntity(request.getFocusAreaId()));
         task.setEstimatedHours(validHours(request.getEstimatedHours() != null ? request.getEstimatedHours() : 0));
         task.setStatus(PlanItemStatusEnum.PLANNED);
+        task.setExtra(Boolean.TRUE.equals(request.getExtra()));
+        if (task.isExtra() && task.getEstimatedHours() <= 0) {
+            throw new BadRequestException("Extra hours must be greater than 0");
+        }
+        if (request.getActualHours() != null) task.setActualHours(validHours(request.getActualHours()));
         task.setSortOrder(request.getSortOrder() != null
                 ? request.getSortOrder()
                 : taskRepository.findByWeekStartAndDeletedAtIsNullOrderBySortOrderAscIdAsc(monday).size());
@@ -75,6 +80,13 @@ public class PlannerItemService {
         }
         if (request.getFocusAreaId() != null) task.setFocusArea(focusAreaService.getOneByIdAsEntity(request.getFocusAreaId()));
         if (request.getEstimatedHours() != null) task.setEstimatedHours(validHours(request.getEstimatedHours()));
+        // Actual time is independent of the estimate -- going over is normal
+        // and is shown, never rejected.
+        if (Boolean.TRUE.equals(request.getClearActualHours())) {
+            task.setActualHours(null);
+        } else if (request.getActualHours() != null) {
+            task.setActualHours(validHours(request.getActualHours()));
+        }
         if (request.getSortOrder() != null) task.setSortOrder(request.getSortOrder());
         if (request.getNotes() != null) task.setNotes(request.getNotes());
         if (Boolean.TRUE.equals(request.getUnlinkObjective())) {

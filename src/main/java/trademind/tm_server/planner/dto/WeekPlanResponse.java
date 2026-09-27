@@ -14,8 +14,8 @@ public class WeekPlanResponse {
     private int workingDays;
     private double baseHours;
     private double extraHours;
-    // Extra-hours entries for this week (general + per Focus Area).
-    private List<WeekExtraResponse> extras;
+    // Extra hours are weekly tasks with extra=true (in `tasks`); extraHours
+    // above is their total.
     private String notes;
     private double capacityHours;
     private double plannedHours;
