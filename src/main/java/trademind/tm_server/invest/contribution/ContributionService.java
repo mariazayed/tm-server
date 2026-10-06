@@ -52,14 +52,16 @@ public class ContributionService {
         return ContributionResponse.from(find(id));
     }
 
-    public ContributionResponse create(ContributionRequest request) {
+    public ContributionResponse create(ContributionRequest raw) {
+        ContributionRequest request = ContributionValidator.normalize(raw);
         ContributionValidator.validate(request, today());
         Contribution c = new Contribution();
         apply(c, request);
         return ContributionResponse.from(contributions.save(c));
     }
 
-    public ContributionResponse update(Long id, ContributionRequest request) {
+    public ContributionResponse update(Long id, ContributionRequest raw) {
+        ContributionRequest request = ContributionValidator.normalize(raw);
         ContributionValidator.validate(request, today());
         Contribution c = find(id);
         apply(c, request);
@@ -103,13 +105,14 @@ public class ContributionService {
         List<ContributionRequest> toSave = new ArrayList<>();
         int skipped = 0;
         for (ContributionCsv.ParsedRow row : parsed.rows()) {
+            ContributionRequest r;
             try {
-                ContributionValidator.validate(row.request(), today);
+                r = ContributionValidator.normalize(row.request());
+                ContributionValidator.validate(r, today);
             } catch (RuntimeException e) {
                 errors.add(new ImportResult.RowError(row.line(), e.getMessage()));
                 continue;
             }
-            ContributionRequest r = row.request();
             if (existing.add(fingerprint(r.contributedOn(), r.amountCents(), r.shares(), r.price()))) {
                 toSave.add(r);
             } else {

@@ -211,6 +211,20 @@ class JournalServiceTest {
     }
 
     @Test
+    void anEntryForgetsItsLinkWhenTheBuyIsDeleted() {
+        Long buyId = contributions.create(new ContributionRequest(LocalDate.parse("2026-10-01"), 30000L,
+                new BigDecimal("2.5549"), new BigDecimal("117.425"), null, null)).id();
+        EntryResponse linked = journal.create(new EntryRequest(JournalEntryType.CHECKIN, null, "Bought.", List.of(), buyId));
+        assertEquals(buyId, journal.get(linked.id()).contributionId());
+
+        contributions.delete(buyId);
+        em.flush();
+        em.clear();
+        assertNull(journal.get(linked.id()).contributionId());
+        assertNull(journal.list(filter(null, null, null), 0, 10).items().get(0).contributionId());
+    }
+
+    @Test
     void checkinTemplateReflectsThisMonthsContribution() {
         CheckinTemplate before = journal.checkinTemplate();
         assertEquals("2026-10", before.month());

@@ -198,7 +198,9 @@ public class JournalService {
                 .filter(t -> t.getDeletedAt() == null)
                 .map(InvestTag::getName).sorted().toList();
         return new EntryResponse(e.getId(), e.getEntryType(), e.getMood(), e.getBody(), tagNames,
-                e.getContribution() == null ? null : e.getContribution().getId(),
+                // A link to a buy that was later deleted is hidden, like note->source and card->note.
+                e.getContribution() == null || e.getContribution().getDeletedAt() != null
+                        ? null : e.getContribution().getId(),
                 e.getCreatedAt(), e.getUpdatedAt());
     }
 }

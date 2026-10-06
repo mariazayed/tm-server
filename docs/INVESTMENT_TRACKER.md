@@ -229,6 +229,73 @@ Two switches, both needed:
 Push notifications are not implemented: the Flutter client has no push service behind it. The
 `ReminderSender` interface is where another channel would plug in.
 
+## Backup, export and restore
+
+Three layers, from quickest to most complete:
+
+1. **Export from the app:** `GET /api/v1/invest/export` returns one JSON document with everything the
+   tracker stores (settings, contributions, prices, tags, journal, rules, sources, notes, flashcards,
+   reminders sent). Deleted items are left out, and a journal entry whose buy was deleted has no link.
+   `schemaVersion` is 1. Money is integer cents. The file contains your notes and reminder address, so
+   keep it private.
+2. **Nightly JSON backup:** set `invest.backup.enabled=true`. Each night (02:30 UTC by default,
+   `invest.backup.cron`) the same export is written to `invest.backup.dir` (default `./backups`) as
+   `invest-backup-YYYYMMDD-HHMMSS.json`, owner-only (`rw-------`), via a temp file and an atomic rename
+   so a crash never leaves a half-written backup. The newest `invest.backup.keep` (default 14) files are
+   kept. A failed backup is logged and retried the next night; it never stops the scheduler.
+3. **Database dump:** `scripts/backup-invest-db.sh` runs `pg_dump` on the `invest_*` tables into a
+   compressed, owner-only `.sql.gz`, verifies the archive, and keeps the newest `KEEP` (default 14). It
+   fails with a non-zero exit and leaves no partial file if the dump fails. Run it from cron:
+
+   ```bash
+   30 2 * * *  PGDATABASE=tm_db BACKUP_DIR=/var/backups/invest /path/to/scripts/backup-invest-db.sh
+   ```
+
+**Restore** (from a database dump): make sure the schema exists (start the app once so Flyway creates
+it), then `gunzip -c invest-db-YYYYMMDD-HHMMSS.sql.gz | psql -d tm_db`. The dump drops and recreates the
+`invest_*` tables. This path was tested by dumping a database and restoring into a fresh one: the row
+counts matched. There is no JSON import yet, so the JSON files are for safekeeping and moving data
+around by hand, not one-click restore. Copy backups off the machine; a backup on the same disk does not
+survive losing the disk.
+
+## Security notes
+
+**How access works.** One owner. `POST /api/v1/auth/login` checks a BCrypt hash and returns an HS256
+token valid for `app.auth.session-days`. Everything under `/api/v1/invest/**` and `GET /api/v1/auth/me`
+needs it; there is no cookie, so there is nothing to forge across sites (no CSRF surface). HTTPS in
+front of the app is required, otherwise the token travels in the clear.
+
+**Checked in the Phase 8 pass, and what changed:**
+
+| Check | Result |
+|---|---|
+| Every invest route needs a token | Verified route by route, and `ProtectedRoutesInventoryTest` fails the build if any invest controller is mounted outside `/api/v1/invest`, since that prefix is the only protected one |
+| Login brute force | 5 attempts per 15 minutes per client address. **Fixed:** the table of tracked addresses was unbounded, so a flood from many addresses could grow memory; it is now capped (new addresses beyond 10,000 share one bucket) |
+| Large request bodies | **Fixed:** `@RequestBody String` read any size into memory. Bodies on invest and login routes are capped at `app.max-body-bytes` (2 MiB); too large gets `413`, including chunked uploads that never declare a length |
+| Absurd numbers | **Fixed:** amounts, fees, shares and prices had no upper bounds, so a huge value would hit a database overflow (500) or overflow a sum. They are bounded in the API and again for CSV rows; extra decimals are rounded to what the database stores (price 4, shares 8) |
+| Malformed JSON | **Fixed earlier (Phase 5):** answers `400`, not `500` |
+| Deleted data leaking | **Fixed:** a journal entry kept exposing the id of a buy that had been deleted, in the API and the export |
+| Error messages | Generic bodies; no stack traces or parser details |
+| Secrets | Hash, signing secret, SMTP credentials and the API are configured by environment or untracked files; backups and dumps are owner-only |
+
+**Known limits, not fixed:**
+
+- **The existing trade-journal endpoints are still open.** Only the investing tracker is protected, so
+  the dashboard and the importer keep working. Protecting everything is the biggest remaining step; it
+  needs the Flutter dashboard to force login everywhere and `tm-py-server` to send a token.
+- **Tokens cannot be revoked one by one.** Logging out only forgets the token on the device. To sign
+  every device out, change `app.auth.session-secret` and restart.
+- **Rate limiting uses the connection address.** Behind a reverse proxy every request looks like the
+  proxy, so five failed attempts from anyone lock everybody out of new logins for 15 minutes (tokens
+  already issued keep working). If your proxy is trusted, set `server.forward-headers-strategy=framework`
+  so the real client address is used; never set it when the app is directly reachable, because the
+  header can then be spoofed.
+- The limiter is in memory, single instance, and resets on restart.
+- No second factor, and a single shared password.
+- Swagger UI and `/v3/api-docs` come from the existing app and are public; they describe the API but
+  expose no data.
+- Dependencies were not scanned for known vulnerabilities (no scanner available in the build sandbox).
+
 ## Deployment
 
 Any host that runs Java 17 and PostgreSQL. Terminate HTTPS in front of the app (Caddy, nginx or a

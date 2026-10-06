@@ -16,7 +16,24 @@ public final class ContributionValidator {
     private ContributionValidator() {
     }
 
+    /**
+     * Rounds shares to 8 and price to 4 decimals, the precision the database keeps, so what is
+     * validated is exactly what is stored (and a 5-decimal price from a broker is not an error).
+     */
+    public static ContributionRequest normalize(ContributionRequest r) {
+        return new ContributionRequest(r.contributedOn(), r.amountCents(),
+                r.shares().setScale(8, java.math.RoundingMode.HALF_UP),
+                r.price().setScale(4, java.math.RoundingMode.HALF_UP), r.feeCents(), r.notes());
+    }
+
     public static void validate(ContributionRequest r, LocalDate today) {
+        // The same bounds as the request annotations: CSV rows never pass through bean validation.
+        if (r.amountCents() > ContributionRequest.MAX_CENTS
+                || (r.feeCents() != null && r.feeCents() > ContributionRequest.MAX_FEE_CENTS)
+                || r.shares().compareTo(new BigDecimal(ContributionRequest.MAX_SHARES)) > 0
+                || r.price().compareTo(new BigDecimal(ContributionRequest.MAX_PRICE)) > 0) {
+            throw new BadRequestException("Amount, fee, shares or price is unrealistically large");
+        }
         if (r.contributedOn().isAfter(today)) {
             throw new BadRequestException("Contribution date cannot be in the future");
         }

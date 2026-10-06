@@ -2,10 +2,11 @@ package trademind.tm_server.invest;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import trademind.tm_server.invest.backup.BackupProperties;
 import trademind.tm_server.invest.price.PriceProperties;
 import trademind.tm_server.invest.reminder.ReminderProperties;
 
 @Configuration
-@EnableConfigurationProperties({PriceProperties.class, ReminderProperties.class})
+@EnableConfigurationProperties({PriceProperties.class, ReminderProperties.class, BackupProperties.class})
 public class InvestConfig {
 }

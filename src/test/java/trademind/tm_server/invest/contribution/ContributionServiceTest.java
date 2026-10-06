@@ -25,6 +25,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -134,6 +135,30 @@ class ContributionServiceTest {
         assertEquals(1, rejected.errors().size());
         assertEquals(3L, rejected.errors().get(0).line());
         assertEquals(2, service.list().size()); // the valid row was not saved either
+    }
+
+    @Test
+    void extraDecimalsAreRoundedToWhatTheDatabaseKeeps() {
+        ContributionResponse c = service.create(new ContributionRequest(LocalDate.parse("2026-10-01"), 30000L,
+                new BigDecimal("2.554890225"), new BigDecimal("117.42505"), null, null));
+        assertEquals(new BigDecimal("117.4251"), c.price());
+        assertEquals(new BigDecimal("2.55489023"), c.shares());
+        assertEquals(c.price(), service.get(c.id()).price()); // what was returned is what is stored
+    }
+
+    @Test
+    void unrealisticValuesAreRefusedEvenWhenTheyArriveViaCsv() {
+        assertThrows(BadRequestException.class, () -> service.create(new ContributionRequest(
+                LocalDate.parse("2026-10-01"), 100_000_000_001L, new BigDecimal("1"), new BigDecimal("1"), null, null)));
+
+        // CSV rows skip bean validation, so the shared validator must catch these as row errors, not 500s.
+        ImportResult result = service.importCsv("date,amount,shares,price\n"
+                + "2026-10-01,300,99999999999999999999,1\n"
+                + "2026-10-02,300,2.55,99999999999999\n"
+                + "2026-10-03,300,2.5549,117.425\n");
+        assertEquals(0, result.imported());
+        assertEquals(List.of(2L, 3L), result.errors().stream().map(ImportResult.RowError::line).toList());
+        assertTrue(service.list().isEmpty()); // the valid third row was not saved either
     }
 
     @Test

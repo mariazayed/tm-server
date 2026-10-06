@@ -99,6 +99,31 @@ class ContributionControllerTest {
     }
 
     @Test
+    void unrealisticValuesAreRejectedBeforeTheService() throws Exception {
+        String[] bad = {
+                // amount over $1 billion
+                """
+                {"contributedOn":"2026-10-01","amountCents":100000000001,"shares":1,"price":1}""",
+                // shares that would overflow numeric(20,8)
+                """
+                {"contributedOn":"2026-10-01","amountCents":100,"shares":1000000000000,"price":1}""",
+                // price that would overflow numeric(14,4)
+                """
+                {"contributedOn":"2026-10-01","amountCents":100,"shares":1,"price":10000000000}""",
+                // absurd fee
+                """
+                {"contributedOn":"2026-10-01","amountCents":100,"shares":1,"price":1,"feeCents":100000001}""",
+                // absurd number of decimals
+                """
+                {"contributedOn":"2026-10-01","amountCents":100,"shares":0.1234567890123456789012345,"price":1}"""};
+        for (String body : bad) {
+            mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(service, never()).create(any());
+    }
+
+    @Test
     void importWithErrorsIs422AndSuccessIs200() throws Exception {
         when(service.importCsv("bad")).thenReturn(
                 new ImportResult(0, 0, List.of(new ImportResult.RowError(2, "Date must be YYYY-MM-DD"))));
