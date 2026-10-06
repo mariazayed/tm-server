@@ -69,7 +69,7 @@ first, so never run it against real data.
 
 ### Schema test
 
-`InvestSchemaTest`, `ContributionServiceTest` and `PriceAndPerformanceServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
+`InvestSchemaTest`, `ContributionServiceTest`, `PriceAndPerformanceServiceTest` and `JournalServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
 `validate`, plus the constraints. It runs only when `INVEST_TEST_DB_URL` is set (CI does this) and
 **drop and recreate the `invest_*` tables** in that database:
 
@@ -128,6 +128,33 @@ invested. `priceAsOf` says which day the price is from; `stale` is true when it 
 old, and `priceFromCache` is false when no closes exist yet and your last buy price is used instead.
 The series has one point per trading day from your first buy (cumulative invested and value); before
 any prices exist it has one point per buy, valued at the price you paid.
+
+## Journal API (all routes need the login token)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/v1/invest/journal` | Timeline, newest first, paged |
+| `POST /api/v1/invest/journal` | Create an entry (201) |
+| `GET/PUT/DELETE /api/v1/invest/journal/{id}` | Read, replace, soft-delete |
+| `GET /api/v1/invest/journal/tags` | Every tag with how many live entries use it (for autocomplete) |
+| `GET /api/v1/invest/journal/checkin-template` | Pre-filled monthly check-in |
+
+**Entry body:** `entryType` (`CHECKIN`, `QUICK`, `DECISION`), optional `mood` 1-5, `body` markdown
+(max 20,000 characters, not blank), optional `tags` (max 10) and optional `contributionId`.
+
+**Tags** are created the first time you use them and matched case-insensitively. Names are trimmed,
+lose a leading `#`, collapse inner spaces and are stored lower-case. `PUT` replaces an entry's tags.
+
+**Timeline filters:** `tag`, `type`, `q`, `from`, `to` (`YYYY-MM-DD`, both inclusive), `page` (from
+0) and `size` (1-100, default 30). `q` is a case-insensitive substring match on the body, with `%`
+and `_` taken literally. The response is `{items, page, size, total, hasMore}`. Date filters use
+the server's clock, not your settings timezone.
+
+**Check-in template:** a markdown skeleton with this month's contribution status and streak filled
+in, then four prompts (stuck to the plan, how the market feels, what I learned, changes: default
+none). `contributionId` is this month's latest buy so the entry can link to it.
+
+Unreadable request bodies (bad JSON, unknown enum values) on the invest routes answer `400`.
 
 ## Deployment
 

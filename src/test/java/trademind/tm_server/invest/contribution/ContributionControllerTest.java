@@ -33,7 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = ContributionControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, ContributionController.class, GlobalExceptionHandler.class})
+@Import({SecurityConfig.class, TokenService.class, ContributionController.class, GlobalExceptionHandler.class,
+        trademind.tm_server.invest.InvestExceptionHandler.class})
 @TestPropertySource(properties = "app.auth.session-secret=0123456789abcdef0123456789abcdef-test")
 class ContributionControllerTest {
 
@@ -85,6 +86,14 @@ class ContributionControllerTest {
         mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"contributedOn":"2026-10-01","amountCents":0,"shares":1,"price":1}"""))
+                .andExpect(status().isBadRequest());
+        verify(service, never()).create(any());
+    }
+
+    @Test
+    void malformedJsonIs400NotAServerError() throws Exception {
+        mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{not json"))
                 .andExpect(status().isBadRequest());
         verify(service, never()).create(any());
     }
