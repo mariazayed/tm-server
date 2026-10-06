@@ -43,6 +43,7 @@ public final class AppConstants {
     public static final String DB_INVEST_LEARNING_NOTES = "invest_learning_notes";
     public static final String DB_INVEST_LEARNING_NOTE_TAGS = "invest_learning_note_tags";
     public static final String DB_INVEST_FLASHCARDS = "invest_flashcards";
+    public static final String DB_INVEST_REMINDER_LOG = "invest_reminder_log";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";

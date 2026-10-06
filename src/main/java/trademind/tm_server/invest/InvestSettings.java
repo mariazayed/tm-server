@@ -38,4 +38,13 @@ public class InvestSettings extends BaseEntity {
 
     @Column(nullable = false, length = 64)
     private String timezone;
+
+    @Column(nullable = false)
+    private boolean remindersEnabled;
+
+    @Column(length = 254)
+    private String reminderEmail;
+
+    @Column(nullable = false)
+    private short reminderFollowupDays = 3;
 }

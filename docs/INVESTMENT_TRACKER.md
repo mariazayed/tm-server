@@ -40,7 +40,7 @@ python3 -c 'import bcrypt,getpass;print(bcrypt.hashpw(getpass.getpass().encode()
 openssl rand -base64 48
 ```
 
-## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`)
+## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`, `V24__invest_reminders.sql`)
 
 All tables are prefixed `invest_`, so they never collide with the trade-journal schema. Money is
 stored as integer cents; share counts and per-share prices are exact decimals. Tables built on
@@ -58,6 +58,7 @@ stored as integer cents; share counts and per-share prices are exact decimals. T
 | `invest_sources` | Reading and watch list | `title`, `source_type`, `url`, `status` |
 | `invest_learning_notes` | Notes on what you learn | `title`, `body` (markdown), optional `source_id` |
 | `invest_learning_note_tags` | Note-to-tag link | `note_id`, `tag_id` |
+| `invest_reminder_log` | One row per reminder sent (V24), unique per month and kind | `month`, `kind`, `sent_at` |
 | `invest_flashcards` | Spaced-repetition cards (V23) | `front`, `back`, optional `note_id`, `due_on`, `interval_days`, `ease`, `repetitions`, `lapses` |
 
 The migration seeds the settings row ($300, USD, VT, buy day 1), the tags `emotion`, `learning`,
@@ -70,7 +71,7 @@ first, so never run it against real data.
 
 ### Schema test
 
-`InvestSchemaTest`, `ContributionServiceTest`, `PriceAndPerformanceServiceTest`, `JournalServiceTest` and `LearningServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
+`InvestSchemaTest`, `ContributionServiceTest`, `PriceAndPerformanceServiceTest`, `JournalServiceTest`, `LearningServiceTest` and `RulesSettingsReminderServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
 `validate`, plus the constraints. It runs only when `INVEST_TEST_DB_URL` is set (CI does this) and
 **drop and recreate the `invest_*` tables** in that database:
 
@@ -184,6 +185,49 @@ times ease (the ease from before the update), always at least one day further, c
 days. Ease changes by +0.10 (Easy), 0 (Good) or -0.14 (Hard) and never goes below 1.30. Again
 resets the card to due tomorrow, leaves ease alone and counts a lapse (unless the card was new).
 "Today" is the settings timezone. Editing a card's text never touches its schedule.
+
+## Rules, settings and reminders (all routes need the login token)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/v1/invest/rules` | Your written rules, in order |
+| `POST /api/v1/invest/rules` | Add a rule at the end (text up to 500 characters, at most 20 rules) |
+| `PUT /api/v1/invest/rules/{id}`, `DELETE /api/v1/invest/rules/{id}` | Edit or delete |
+| `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
+| `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders) |
+| `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |
+| `POST /api/v1/invest/reminders/test` | Send a test message now; a delivery problem is reported in the body, not as an HTTP error |
+
+`GET /settings` (Phase 2) now also returns `remindersEnabled`, `reminderEmail` and
+`reminderFollowupDays`. Settings are validated: buy day 1-28, a real ISO currency, a real timezone,
+ticker letters/digits/`.`/`-`, follow-up 1-14 days, and an email address when reminders are on.
+
+**Reminders.** One email on the buy day if nothing has been bought this month, and one more
+`reminderFollowupDays` later if still nothing. Once the month has a contribution, nothing more is
+sent. The follow-up never spills into the next month. If the server was down, only the most relevant
+reminder goes out, not both. Each kind is sent once a month (tracked in `invest_reminder_log`), and a
+failed send is retried on the next run. "Today" is the settings timezone. The email carries the amount,
+ticker and your rules, nothing else.
+
+Two switches, both needed:
+
+1. **Server:** `invest.reminders.enabled=true` runs the daily job (cron `invest.reminders.cron`, UTC,
+   default 09:00) and SMTP must be configured:
+
+   ```properties
+   spring.mail.host=smtp.example.com
+   spring.mail.port=587
+   spring.mail.properties.mail.smtp.auth=true
+   spring.mail.properties.mail.smtp.starttls.enable=true
+   invest.reminders.from=you@example.com
+   ```
+
+   Put `SPRING_MAIL_USERNAME` and `SPRING_MAIL_PASSWORD` in environment variables or the untracked
+   `application-local.properties`, never in git.
+2. **App:** the Reminders toggle and email address in the settings page.
+
+Push notifications are not implemented: the Flutter client has no push service behind it. The
+`ReminderSender` interface is where another channel would plug in.
 
 ## Deployment
 

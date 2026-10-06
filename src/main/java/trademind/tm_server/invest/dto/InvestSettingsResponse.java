@@ -10,10 +10,14 @@ public record InvestSettingsResponse(
         int buyDay,
         String ticker,
         LocalDate startDate,
-        String timezone) {
+        String timezone,
+        boolean remindersEnabled,
+        String reminderEmail,
+        int reminderFollowupDays) {
 
     public static InvestSettingsResponse from(InvestSettings s) {
         return new InvestSettingsResponse(s.getMonthlyAmountCents(), s.getCurrency(), s.getBuyDay(),
-                s.getTicker(), s.getStartDate(), s.getTimezone());
+                s.getTicker(), s.getStartDate(), s.getTimezone(), s.isRemindersEnabled(),
+                s.getReminderEmail(), s.getReminderFollowupDays());
     }
 }
