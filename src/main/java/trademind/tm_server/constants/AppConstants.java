@@ -35,6 +35,8 @@ public final class AppConstants {
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";
+    public static final String URL_AUTH = API_VERSION + "/auth";
+    public static final String URL_INVEST = API_VERSION + "/invest";
     public static final String URL_ASSET = API_VERSION + "/asset";
     public static final String URL_TRADE = API_VERSION + "/trade";
     public static final String URL_TRADE_STEP = API_VERSION + "/tradeStep";
