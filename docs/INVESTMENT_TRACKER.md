@@ -69,7 +69,7 @@ first, so never run it against real data.
 
 ### Schema test
 
-`InvestSchemaTest` and `ContributionServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
+`InvestSchemaTest`, `ContributionServiceTest` and `PriceAndPerformanceServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
 `validate`, plus the constraints. It runs only when `INVEST_TEST_DB_URL` is set (CI does this) and
 **drop and recreate the `invest_*` tables** in that database:
 
@@ -104,6 +104,30 @@ streak, so it only resets once a month actually ends empty.
 every bad row with its line number, and skips rows identical to an existing contribution, so
 re-importing the same file is safe. Exported notes that start with `=`, `+`, `-` or `@` get a
 leading `'` so spreadsheets do not run them as formulas.
+
+## Prices and performance
+
+| Method and path | Purpose |
+|---|---|
+| `POST /api/v1/invest/prices/refresh` | Fetch fresh closes now. A provider failure comes back in the body (`error`), not as an HTTP error |
+| `GET /api/v1/invest/performance?range=ALL` | Totals plus a chart series. `range` is `3M`, `6M`, `1Y` or `ALL` and only trims the series |
+
+**Price source.** `PriceProvider` is an interface; `YahooPriceProvider` reads daily closes from Yahoo
+Finance's key-less chart endpoint (unofficial, so it can change or rate-limit). Raw closes are used,
+not dividend-adjusted ones, so they compare with the price you paid. Closes are cached in
+`invest_prices`; the first refresh backfills from your earliest contribution, later ones fetch from
+the newest cached close minus 5 days, which also corrects late revisions. A failed fetch never
+touches the cache, and `performance` keeps working from it.
+
+**Daily job.** Off by default. Set `invest.prices.enabled=true` (cron via `invest.prices.refresh-cron`,
+UTC, default 23:30) to refresh automatically.
+
+**Numbers.** *Invested* is cash out of pocket: amounts plus fees. *Average cost* is invested divided
+by shares, so it includes fees. *Value* is shares times the latest close. *Gain %* is gain divided by
+invested. `priceAsOf` says which day the price is from; `stale` is true when it is more than 4 days
+old, and `priceFromCache` is false when no closes exist yet and your last buy price is used instead.
+The series has one point per trading day from your first buy (cumulative invested and value); before
+any prices exist it has one point per buy, valued at the price you paid.
 
 ## Deployment
 
