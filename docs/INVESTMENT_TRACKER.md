@@ -69,14 +69,41 @@ first, so never run it against real data.
 
 ### Schema test
 
-`InvestSchemaTest` applies V22 to a scratch database and checks the entities with Hibernate's
+`InvestSchemaTest` and `ContributionServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
 `validate`, plus the constraints. It runs only when `INVEST_TEST_DB_URL` is set (CI does this) and
-**drops and recreates the `invest_*` tables** in that database:
+**drop and recreate the `invest_*` tables** in that database:
 
 ```bash
 INVEST_TEST_DB_URL=jdbc:postgresql://localhost:5432/scratch INVEST_TEST_DB_USER=postgres \
   mvn test -Dtest=InvestSchemaTest
 ```
+
+## Contribution API (all routes need the login token)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/v1/invest/settings` | Plan settings (amount, currency, buy day, ticker, start date) |
+| `GET /api/v1/invest/contributions` | List, newest first |
+| `POST /api/v1/invest/contributions` | Create (201) |
+| `GET/PUT/DELETE /api/v1/invest/contributions/{id}` | Read, replace, soft-delete |
+| `GET /api/v1/invest/contributions/status` | Month-by-month status, streaks, next due date |
+| `GET /api/v1/invest/contributions/export` | CSV download |
+| `POST /api/v1/invest/contributions/import` | CSV body (`text/csv`); 200, or 422 with row errors |
+
+Request body: `contributedOn` (`YYYY-MM-DD`), `amountCents`, `shares`, `price`, optional `feeCents`
+and `notes`. Rules: positive amount, shares and price; the date cannot be in the future (judged in
+the settings timezone); `shares` must be within 1% of `amount / price` to allow broker rounding.
+
+**Status.** A month is `DONE` with at least one buy, `MISSED` if it ended without one, and for the
+current month `PENDING` (buy day not reached) or `OVERDUE`. Pending and overdue never break the
+streak, so it only resets once a month actually ends empty.
+
+**CSV.** Columns `date, amount, shares, price, fee, notes`, with amount and fee in currency units
+(`300.00`). Headers are case-insensitive and accept aliases (`trade date`, `total`, `quantity`,
+`commission`, ...); `$` and thousands separators are tolerated. Import is all-or-nothing, reports
+every bad row with its line number, and skips rows identical to an existing contribution, so
+re-importing the same file is safe. Exported notes that start with `=`, `+`, `-` or `@` get a
+leading `'` so spreadsheets do not run them as formulas.
 
 ## Deployment
 
