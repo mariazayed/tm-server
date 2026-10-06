@@ -64,9 +64,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
-                + "classpath:db/migration/V24__invest_reminders.sql",
+                + "classpath:db/migration/V24__invest_reminders.sql,"
+                + "classpath:db/migration/V25__invest_embeddings.sql",
         "app.auth.session-secret=0123456789abcdef0123456789abcdef-e2e",
-        "app.max-body-bytes=2048"
+        "app.max-body-bytes=2048",
+        "ai.provider.api-key=sk-ant-e2e-SECRET-KEY-VALUE",
+        "ai.provider.model=claude-e2e-model"
 })
 class InvestEndToEndTest {
 
@@ -350,5 +353,40 @@ class InvestEndToEndTest {
                 .andExpect(jsonPath("$.contributions.length()").value(0))
                 .andExpect(jsonPath("$.journal[0].contributionId").doesNotExist()); // link to a deleted buy is not exported
         assertEquals(0, ((List<?>) JsonPath.read(body(mvc.perform(auth(get("/api/v1/invest/contributions"))).andReturn()), "$")).size());
+    }
+
+    @Test
+    @Order(14)
+    void theAiFoundationsSeeTheOwnersDataButNeverTheKey() throws Exception {
+        mvc.perform(get("/api/v1/invest/ai/status")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/invest/ai/context")).andExpect(status().isUnauthorized());
+
+        String status = body(mvc.perform(auth(get("/api/v1/invest/ai/status")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.configured").value(true))
+                .andExpect(jsonPath("$.model").value("claude-e2e-model"))
+                .andReturn());
+
+        MvcResult preview = mvc.perform(auth(get("/api/v1/invest/ai/context")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.truncated").value(false))
+                .andReturn();
+        String context = JsonPath.read(body(preview), "$.text");
+        assertTrue(context.contains("Wait 72 hours before any deviation."), "the rules (reordered) are included");
+        assertTrue(context.contains("Invest a fixed amount on a schedule."), "the learning note is included");
+        assertTrue(context.contains("<user_text>"), "owner-written text is wrapped");
+        assertTrue(context.contains("0 cards") || context.contains("1 cards"), context);
+
+        // With the journal and notes switched off, none of that free text is sent.
+        String lean = JsonPath.read(body(mvc.perform(auth(get("/api/v1/invest/ai/context"))
+                .param("includeJournal", "false").param("includeNotes", "false")).andReturn()), "$.text");
+        assertTrue(!lean.contains("Invest a fixed amount on a schedule."));
+        assertTrue(lean.contains("Wait 72 hours before any deviation."), "rules and numbers always stay");
+
+        // The key is a server-side secret: it is in no response, whatever the route.
+        for (String text : new String[] {status, context, lean, body(mvc.perform(auth(get("/api/v1/invest/export"))).andReturn()),
+                body(mvc.perform(auth(get("/api/v1/invest/settings"))).andReturn())}) {
+            assertTrue(!text.contains("sk-ant-e2e-SECRET-KEY-VALUE"));
+        }
     }
 }

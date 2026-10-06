@@ -53,7 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
-                + "classpath:db/migration/V24__invest_reminders.sql"
+                + "classpath:db/migration/V24__invest_reminders.sql,"
+                + "classpath:db/migration/V25__invest_embeddings.sql"
 })
 class JournalServiceTest {
 
