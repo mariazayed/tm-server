@@ -32,6 +32,16 @@ public final class AppConstants {
     public static final String DB_MONTHLY_OBJECTIVES = "monthly_objectives";
     public static final String DB_WEEKLY_TASKS = "weekly_tasks";
     public static final String DB_PLANNER_WEEK_EXTRAS = "planner_week_extras";
+    public static final String DB_INVEST_SETTINGS = "invest_settings";
+    public static final String DB_INVEST_CONTRIBUTIONS = "invest_contributions";
+    public static final String DB_INVEST_PRICES = "invest_prices";
+    public static final String DB_INVEST_TAGS = "invest_tags";
+    public static final String DB_INVEST_JOURNAL_ENTRIES = "invest_journal_entries";
+    public static final String DB_INVEST_JOURNAL_ENTRY_TAGS = "invest_journal_entry_tags";
+    public static final String DB_INVEST_RULES = "invest_rules";
+    public static final String DB_INVEST_SOURCES = "invest_sources";
+    public static final String DB_INVEST_LEARNING_NOTES = "invest_learning_notes";
+    public static final String DB_INVEST_LEARNING_NOTE_TAGS = "invest_learning_note_tags";
 
     // URL Endpoints
     private static final String API_VERSION = "/api/v1";

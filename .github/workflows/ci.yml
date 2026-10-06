@@ -5,6 +5,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -12,5 +22,10 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-      # contextLoads needs a migrated local PostgreSQL, so it is excluded here.
+      # contextLoads needs a fully migrated local database, so it is excluded here.
+      # InvestSchemaTest applies V22 to the service database and validates the entities.
       - run: mvn -B verify -Dtest='!TmServerApplicationTests' -Dsurefire.failIfNoSpecifiedTests=false
+        env:
+          INVEST_TEST_DB_URL: jdbc:postgresql://localhost:5432/postgres
+          INVEST_TEST_DB_USER: postgres
+          INVEST_TEST_DB_PASSWORD: postgres
