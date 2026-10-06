@@ -40,7 +40,7 @@ python3 -c 'import bcrypt,getpass;print(bcrypt.hashpw(getpass.getpass().encode()
 openssl rand -base64 48
 ```
 
-## Data model (Flyway `V22__create_invest_tables.sql`)
+## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`)
 
 All tables are prefixed `invest_`, so they never collide with the trade-journal schema. Money is
 stored as integer cents; share counts and per-share prices are exact decimals. Tables built on
@@ -58,6 +58,7 @@ stored as integer cents; share counts and per-share prices are exact decimals. T
 | `invest_sources` | Reading and watch list | `title`, `source_type`, `url`, `status` |
 | `invest_learning_notes` | Notes on what you learn | `title`, `body` (markdown), optional `source_id` |
 | `invest_learning_note_tags` | Note-to-tag link | `note_id`, `tag_id` |
+| `invest_flashcards` | Spaced-repetition cards (V23) | `front`, `back`, optional `note_id`, `due_on`, `interval_days`, `ease`, `repetitions`, `lapses` |
 
 The migration seeds the settings row ($300, USD, VT, buy day 1), the tags `emotion`, `learning`,
 `market-event` and `decision`, and your three rules. Entities and repositories live in
@@ -69,7 +70,7 @@ first, so never run it against real data.
 
 ### Schema test
 
-`InvestSchemaTest`, `ContributionServiceTest`, `PriceAndPerformanceServiceTest` and `JournalServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
+`InvestSchemaTest`, `ContributionServiceTest`, `PriceAndPerformanceServiceTest`, `JournalServiceTest` and `LearningServiceTest` apply V22 to a scratch database and checks the entities with Hibernate's
 `validate`, plus the constraints. It runs only when `INVEST_TEST_DB_URL` is set (CI does this) and
 **drop and recreate the `invest_*` tables** in that database:
 
@@ -155,6 +156,34 @@ in, then four prompts (stuck to the plan, how the market feels, what I learned, 
 none). `contributionId` is this month's latest buy so the entry can link to it.
 
 Unreadable request bodies (bad JSON, unknown enum values) on the invest routes answer `400`.
+
+## Learning API (all routes need the login token)
+
+Everything is under `/api/v1/invest/learning`.
+
+| Method and path | Purpose |
+|---|---|
+| `GET /sources?status=` | Reading and watch list, newest first |
+| `POST /sources`, `GET/PUT/DELETE /sources/{id}` | Manage a source (book, video, article, podcast, other) |
+| `GET /notes?sourceId=&tag=&q=&page=&size=` | Learning notes, paged; `q` matches title or body |
+| `POST /notes`, `GET/PUT/DELETE /notes/{id}` | Manage notes (markdown body, optional source, tags) |
+| `GET /notes/tags` | Tags with how many live notes use them |
+| `GET /cards?noteId=` | All flashcards, soonest due first |
+| `POST /cards`, `PUT/DELETE /cards/{id}` | Manage cards (optionally linked to a note) |
+| `GET /cards/due?limit=` | Today's queue: due or overdue, most overdue first (1-100, default 20) |
+| `GET /cards/stats` | `total`, `due`, `newCards`, `reviewedToday` |
+| `POST /cards/{id}/review` | Body `{"grade":"AGAIN\|HARD\|GOOD\|EASY"}`; returns the rescheduled card |
+
+Source links must be `http` or `https` (anything else, such as `javascript:`, is rejected). Sources
+default to `TO_DO`. Deleting a source or note hides the link from the things that pointed at it
+instead of deleting them. Notes share the tag rules of the journal.
+
+**Spaced repetition (SM-2).** A new card is due immediately. Grades map to SM-2 quality scores:
+Again 1, Hard 3, Good 4, Easy 5. A pass moves the interval 1 day, then 6, then previous interval
+times ease (the ease from before the update), always at least one day further, capped at 3650
+days. Ease changes by +0.10 (Easy), 0 (Good) or -0.14 (Hard) and never goes below 1.30. Again
+resets the card to due tomorrow, leaves ease alone and counts a lapse (unless the card was new).
+"Today" is the settings timezone. Editing a card's text never touches its schedule.
 
 ## Deployment
 

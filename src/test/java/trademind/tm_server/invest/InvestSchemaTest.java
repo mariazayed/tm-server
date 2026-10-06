@@ -47,7 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.sql.init.mode=always",
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
-                + "classpath:db/migration/V22__create_invest_tables.sql"
+                + "classpath:db/migration/V22__create_invest_tables.sql,"
+                + "classpath:db/migration/V23__create_invest_flashcards.sql"
 })
 class InvestSchemaTest {
 
@@ -168,5 +169,28 @@ class InvestSchemaTest {
         n.getTags().add(tags.findByNameIgnoreCaseAndDeletedAtIsNull("learning").orElseThrow());
         notes.saveAndFlush(n);
         assertEquals(1, notes.findByDeletedAtIsNullAndSource_IdOrderByCreatedAtDesc(src.getId()).size());
+    }
+
+    @Autowired jakarta.persistence.EntityManager entityManager;
+
+    @Test
+    void flashcardEaseCannotDropBelowTheSm2Floor() {
+        Flashcard ok = new Flashcard();
+        ok.setFront("Q");
+        ok.setBack("A");
+        ok.setDueOn(LocalDate.of(2026, 10, 15));
+        ok.setEase(new BigDecimal("1.30"));
+        entityManager.persist(ok);
+        entityManager.flush();
+
+        Flashcard bad = new Flashcard();
+        bad.setFront("Q");
+        bad.setBack("A");
+        bad.setDueOn(LocalDate.of(2026, 10, 15));
+        bad.setEase(new BigDecimal("1.29"));
+        assertThrows(Exception.class, () -> {
+            entityManager.persist(bad);
+            entityManager.flush();
+        });
     }
 }

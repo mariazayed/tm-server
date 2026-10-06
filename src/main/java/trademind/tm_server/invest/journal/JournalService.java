@@ -15,6 +15,7 @@ import trademind.tm_server.invest.Contribution;
 import trademind.tm_server.invest.InvestSettings;
 import trademind.tm_server.invest.InvestTag;
 import trademind.tm_server.invest.JournalEntry;
+import trademind.tm_server.invest.TagService;
 import trademind.tm_server.invest.contribution.ContributionStatusCalculator;
 import trademind.tm_server.invest.contribution.ContributionService;
 import trademind.tm_server.invest.journal.JournalDtos.CheckinTemplate;
@@ -47,7 +48,7 @@ import java.util.stream.Collectors;
 public class JournalService {
 
     public static final int MAX_BODY = 20_000;
-    public static final int MAX_TAGS = 10;
+    public static final int MAX_TAGS = TagService.MAX_TAGS;
     public static final int MAX_PAGE_SIZE = 100;
 
     /** Filters for the timeline; every field is optional. */
@@ -56,16 +57,18 @@ public class JournalService {
 
     private final JournalEntryRepository entries;
     private final InvestTagRepository tags;
+    private final TagService tagService;
     private final ContributionRepository contributions;
     private final ContributionService contributionService;
     private final InvestSettingsRepository settings;
     private final Clock clock;
 
-    public JournalService(JournalEntryRepository entries, InvestTagRepository tags,
+    public JournalService(JournalEntryRepository entries, InvestTagRepository tags, TagService tagService,
                           ContributionRepository contributions, ContributionService contributionService,
                           InvestSettingsRepository settings, Clock clock) {
         this.entries = entries;
         this.tags = tags;
+        this.tagService = tagService;
         this.contributions = contributions;
         this.contributionService = contributionService;
         this.settings = settings;
@@ -152,28 +155,9 @@ public class JournalService {
         e.setContribution(r.contributionId() == null ? null : contributions.findById(r.contributionId())
                 .filter(c -> c.getDeletedAt() == null)
                 .orElseThrow(() -> new BadRequestException("Contribution " + r.contributionId() + " not found")));
-        Set<InvestTag> resolved = new LinkedHashSet<>();
-        for (String name : normalizeTags(r.tags())) {
-            resolved.add(tags.findByNameIgnoreCaseAndDeletedAtIsNull(name)
-                    .orElseGet(() -> tags.save(new InvestTag(name))));
-        }
+        Set<InvestTag> resolved = tagService.resolve(r.tags());
         e.getTags().clear();
         e.getTags().addAll(resolved);
-    }
-
-    /** Trim, drop a leading '#', collapse spaces, lower-case, dedupe, keep order. */
-    static List<String> normalizeTags(List<String> raw) {
-        if (raw == null) return List.of();
-        LinkedHashSet<String> out = new LinkedHashSet<>();
-        for (String t : raw) {
-            String n = t.strip().replaceFirst("^#+", "").strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
-            if (n.isEmpty()) continue;
-            out.add(n);
-        }
-        if (out.size() > MAX_TAGS) {
-            throw new BadRequestException("At most " + MAX_TAGS + " tags per entry");
-        }
-        return new ArrayList<>(out);
     }
 
     private static Specification<JournalEntry> specification(Filter f) {

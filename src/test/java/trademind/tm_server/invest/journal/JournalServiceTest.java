@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = JournalServiceTest.TestApp.class)
-@Import({JournalService.class, ContributionService.class, JournalServiceTest.FixedClock.class})
+@Import({JournalService.class, trademind.tm_server.invest.TagService.class, ContributionService.class, JournalServiceTest.FixedClock.class})
 @TestPropertySource(properties = {
         "spring.datasource.url=${INVEST_TEST_DB_URL}",
         "spring.datasource.username=${INVEST_TEST_DB_USER:postgres}",
@@ -51,7 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.sql.init.mode=always",
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
-                + "classpath:db/migration/V22__create_invest_tables.sql"
+                + "classpath:db/migration/V22__create_invest_tables.sql,"
+                + "classpath:db/migration/V23__create_invest_flashcards.sql"
 })
 class JournalServiceTest {
 

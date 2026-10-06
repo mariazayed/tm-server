@@ -48,7 +48,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.sql.init.mode=always",
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
-                + "classpath:db/migration/V22__create_invest_tables.sql"
+                + "classpath:db/migration/V22__create_invest_tables.sql,"
+                + "classpath:db/migration/V23__create_invest_flashcards.sql"
 })
 class PriceAndPerformanceServiceTest {
 

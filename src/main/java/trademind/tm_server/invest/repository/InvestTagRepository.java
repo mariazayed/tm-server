@@ -31,4 +31,16 @@ public interface InvestTagRepository extends JpaRepository<InvestTag, Long> {
             order by lower(t.name)
             """, nativeQuery = true)
     List<TagUsage> findUsage();
+
+    /** Every live tag with how many live learning notes use it (0 for unused). */
+    @Query(value = """
+            select t.name as name, count(n.id) as count
+            from invest_tags t
+            left join invest_learning_note_tags nt on nt.tag_id = t.id
+            left join invest_learning_notes n on n.id = nt.note_id and n.deleted_at is null
+            where t.deleted_at is null
+            group by t.id, t.name
+            order by lower(t.name)
+            """, nativeQuery = true)
+    List<TagUsage> findNoteUsage();
 }
