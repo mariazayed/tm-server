@@ -234,4 +234,32 @@ class RetrievalServiceTest {
         assertTrue(names.contains("idx_invest_learning_notes_search"));
         assertNotNull(jdbc.queryForObject("SELECT search_vector::text FROM (SELECT to_tsvector('english','x') AS search_vector) t", String.class));
     }
+
+    @Test
+    void entriesCarryTheirTypeMoodAndTagsAndNotesCarryTheirTags() {
+        long moody = jdbc.queryForObject("INSERT INTO invest_journal_entries (entry_type, mood, body, created_at) "
+                + "VALUES ('CHECKIN', 2, 'Worried about the dip.', '2026-03-04 09:00') RETURNING id", Long.class);
+        long plain = entry("2026-03-05 09:00", "No mood recorded about the dip.");
+        long zebra = jdbc.queryForObject("INSERT INTO invest_tags (name) VALUES ('zebra') RETURNING id", Long.class);
+        long gone = jdbc.queryForObject("INSERT INTO invest_tags (name, deleted_at) VALUES ('removed', now()) RETURNING id", Long.class);
+        long emotion = jdbc.queryForObject("SELECT id FROM invest_tags WHERE name = 'emotion'", Long.class);
+        for (long tag : new long[] {zebra, gone, emotion}) {
+            jdbc.update("INSERT INTO invest_journal_entry_tags (entry_id, tag_id) VALUES (?, ?)", moody, tag);
+        }
+        long n = note("2026-03-06 09:00", "Dips", "Notes on every dip.");
+        jdbc.update("INSERT INTO invest_learning_note_tags (note_id, tag_id) VALUES (?, ?)", n, emotion);
+
+        Result r = retrieval.search("dip", true, true);
+        Snippet withMood = r.journal().stream().filter(sn -> sn.id() == moody).findFirst().orElseThrow();
+        assertEquals("CHECKIN", withMood.type());
+        assertEquals((short) 2, withMood.mood());
+        assertEquals(List.of("emotion", "zebra"), withMood.tags(), "sorted, and the deleted tag is not shown");
+        Snippet noMood = r.journal().stream().filter(sn -> sn.id() == plain).findFirst().orElseThrow();
+        org.junit.jupiter.api.Assertions.assertNull(noMood.mood(), "no mood is null, never 0");
+        assertEquals(List.of(), noMood.tags());
+        Snippet theNote = r.notes().get(0);
+        assertEquals(List.of("emotion"), theNote.tags());
+        org.junit.jupiter.api.Assertions.assertNull(theNote.type());
+        org.junit.jupiter.api.Assertions.assertNull(theNote.mood());
+    }
 }

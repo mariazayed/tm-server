@@ -1,13 +1,19 @@
 package trademind.tm_server.invest.ai;
 
+import trademind.tm_server.exceptions.BadRequestException;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import trademind.tm_server.constants.AppConstants;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:4300")
 @RestController
@@ -19,16 +25,36 @@ public class AiController {
     }
 
     /** What an AI feature would be shown, exactly as it would be sent. */
+    /**
+     * @param feature      "context" (the standing context only) or the feature previewed, such as "chat"
+     * @param characters   length of {@code text}; for a feature preview, system plus text, the amount the size cap counts
+     * @param systemPrompt the standing instructions sent with {@code text}; null for the plain context preview
+     * @param snippets     pieces of journal or notes included (feature previews only)
+     */
     public record ContextPreview(Instant generatedAt, boolean includeJournal, boolean includeNotes, boolean truncated,
-                                 int characters, int maxCharacters, String text) {
+                                 int characters, int maxCharacters, String text, String feature, String systemPrompt,
+                                 int snippets) {
     }
 
     private final UserContextService contextService;
     private final AiService aiService;
+    private final AiChatService chatService;
+    private final AiProperties properties;
+    private final Clock clock;
 
-    public AiController(UserContextService contextService, AiService aiService) {
+    public AiController(UserContextService contextService, AiService aiService, AiChatService chatService,
+                        AiProperties properties, Clock clock) {
         this.contextService = contextService;
         this.aiService = aiService;
+        this.chatService = chatService;
+        this.properties = properties;
+        this.clock = clock;
+    }
+
+    /** Asks a question about the owner's own rules, journal and notes. Read-only; see {@link AiChatService}. */
+    @PostMapping("/chat")
+    public ChatDtos.ChatResponse chat(@Valid @RequestBody ChatDtos.ChatRequest request) {
+        return chatService.chat(request);
     }
 
     @GetMapping("/status")
@@ -59,12 +85,32 @@ public class AiController {
                 hasKey ? "Set ai.provider.model on the server" : "Set ai.provider.api-key on the server");
     }
 
+    /**
+     * What would be sent. With no {@code feature} it is the standing context. With {@code feature=chat&q=...} it
+     * is the complete chat prompt for that question, built by the same code the chat uses.
+     */
     @GetMapping("/context")
     public ContextPreview context(@RequestParam(defaultValue = "true") boolean includeJournal,
-                                  @RequestParam(defaultValue = "true") boolean includeNotes) {
+                                  @RequestParam(defaultValue = "true") boolean includeNotes,
+                                  @RequestParam(defaultValue = "context") String feature,
+                                  @RequestParam(required = false) String q) {
+        if ("chat".equals(feature)) {
+            if (q == null || q.isBlank()) {
+                throw new BadRequestException("Add q=<your question> to preview a chat prompt");
+            }
+            ChatPromptBuilder.Built built = chatService.buildPrompt(q, List.of(), includeJournal, includeNotes);
+            String system = built.prompt().system();
+            String text = built.prompt().user();
+            return new ContextPreview(clock.instant(), includeJournal, includeNotes, built.truncated(),
+                    system.length() + text.length(), properties.limits().maxPromptChars(), text, "chat", system,
+                    built.sources().size());
+        }
+        if (!"context".equals(feature)) {
+            throw new BadRequestException("Unknown feature (use context or chat)");
+        }
         UserContext context = contextService.build(new ContextOptions(includeJournal, includeNotes));
         UserContextRenderer.Rendered rendered = UserContextRenderer.render(context);
         return new ContextPreview(context.generatedAt(), includeJournal, includeNotes, rendered.truncated(),
-                rendered.text().length(), UserContextRenderer.MAX_CHARS, rendered.text());
+                rendered.text().length(), UserContextRenderer.MAX_CHARS, rendered.text(), "context", null, 0);
     }
 }

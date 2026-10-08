@@ -10,6 +10,10 @@ class InMemoryAiUsageStore implements AiUsageStore {
     private final Map<String, long[]> rows = new TreeMap<>(); // key "date|FEATURE" -> {calls, in, out}
     boolean failOnRecord;
 
+    synchronized void clear() {
+        rows.clear();
+    }
+
     private static String key(LocalDate day, AiFeature feature) {
         return day + "|" + feature.name();
     }

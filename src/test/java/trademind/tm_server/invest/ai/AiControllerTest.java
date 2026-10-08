@@ -17,6 +17,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.http.MediaType;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,10 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = AiControllerTest.TestApp.class)
-@Import({AiController.class, AiService.class, AiControllerTest.Wiring.class, GlobalExceptionHandler.class,
+@Import({AiController.class, AiService.class, AiChatService.class, AiControllerTest.Wiring.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
 @TestPropertySource(properties = {
         "ai.enabled=true",
+        "ai.limits.per-minute=1000",
         "ai.provider.api-key=sk-ant-THIS-MUST-NEVER-LEAK",
         "ai.provider.model=claude-test-model"
 })
@@ -52,7 +55,7 @@ class AiControllerTest {
         }
 
         @org.springframework.context.annotation.Bean
-        AiUsageStore usageStore() {
+        InMemoryAiUsageStore usageStore() {
             return new InMemoryAiUsageStore();
         }
     }
@@ -61,8 +64,15 @@ class AiControllerTest {
 
     @Autowired MockMvc mvc;
     @MockitoBean UserContextService contextService;
+    @MockitoBean RetrievalService retrieval;
     @MockitoBean trademind.tm_server.ai.LlmClient llm;
     @Autowired AiService ai;
+    @Autowired InMemoryAiUsageStore usage;
+
+    @org.junit.jupiter.api.BeforeEach
+    void freshCounts() {
+        usage.clear(); // the context (and so the store) is shared by every test in this class
+    }
 
     private static UserContext context() {
         return new UserContext(Instant.parse("2026-10-06T12:00:00Z"),
@@ -94,7 +104,7 @@ class AiControllerTest {
                 .andExpect(jsonPath("$.date").value("2026-10-06"))
                 .andExpect(jsonPath("$.callsToday").value(1))
                 .andExpect(jsonPath("$.dailyLimit").value(60))
-                .andExpect(jsonPath("$.perMinuteLimit").value(6))
+                .andExpect(jsonPath("$.perMinuteLimit").value(1000))
                 .andExpect(jsonPath("$.inputTokens").value(120))
                 .andExpect(jsonPath("$.outputTokens").value(30))
                 .andExpect(jsonPath("$.callsByFeature.CHAT").value(1));
@@ -141,5 +151,111 @@ class AiControllerTest {
                 .andExpect(jsonPath("$.includeJournal").value(false))
                 .andExpect(jsonPath("$.includeNotes").value(false));
         verify(contextService).build(eq(new ContextOptions(false, false)));
+    }
+
+    // ---- chat -----------------------------------------------------------------------------------
+
+    private static final RetrievalService.Snippet SCARED = new RetrievalService.Snippet(RetrievalService.Kind.JOURNAL, 12,
+            LocalDate.parse("2026-03-04"), null, "QUICK", (short) 2, List.of("fear"), "I was scared when the market dropped.", true);
+
+    private void stubChat(String reply) {
+        when(contextService.build(any())).thenReturn(context());
+        when(retrieval.search(any(), org.mockito.ArgumentMatchers.anyBoolean(), org.mockito.ArgumentMatchers.anyBoolean()))
+                .thenReturn(new RetrievalService.Result(List.of(SCARED), List.of()));
+        when(llm.completeWithUsage(any(), any(), any()))
+                .thenReturn(new trademind.tm_server.ai.LlmResult(reply, 10, 5, "end_turn"));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions chat(String json) throws Exception {
+        return mvc.perform(post("/api/v1/invest/ai/chat").contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    @Test
+    void chatReturnsTheAnswerWithItsCitedSourceAndNeverTheKey() throws Exception {
+        stubChat("You felt scared [J12].");
+        MvcResult result = chat("{\"question\":\"How did I feel?\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answer").value("You felt scared [J12]."))
+                .andExpect(jsonPath("$.sources.length()").value(1))
+                .andExpect(jsonPath("$.sources[0].handle").value("J12"))
+                .andExpect(jsonPath("$.sources[0].type").value("JOURNAL"))
+                .andExpect(jsonPath("$.sources[0].id").value(12))
+                .andExpect(jsonPath("$.sources[0].date").value("2026-03-04"))
+                .andExpect(jsonPath("$.sources[0].snippet").value("I was scared when the market dropped."))
+                .andExpect(jsonPath("$.usedJournal").value(true))
+                .andExpect(jsonPath("$.usedNotes").value(true))
+                .andExpect(jsonPath("$.model").value("claude-test-model"))
+                .andExpect(jsonPath("$.refusal").doesNotExist())
+                .andReturn();
+        assertFalse(result.getResponse().getContentAsString().contains(SECRET));
+    }
+
+    @Test
+    void chatPassesThePrivacySwitchesAndHistoryThrough() throws Exception {
+        stubChat("Calm [J12].");
+        chat("{\"question\":\"And later?\",\"includeJournal\":false,\"includeNotes\":true,"
+                + "\"history\":[{\"role\":\"user\",\"text\":\"first\"},{\"role\":\"assistant\",\"text\":\"second\"}]}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usedJournal").value(false));
+        verify(retrieval).search("And later?", false, true);
+    }
+
+    @Test
+    void chatRejectsBadRequestsWithA400AndNeverCallsTheModel() throws Exception {
+        String seven = "[" + "{\"role\":\"user\",\"text\":\"x\"},".repeat(6) + "{\"role\":\"user\",\"text\":\"x\"}]";
+        for (String body : new String[] {
+                "{}", "{\"question\":\"  \"}", "{\"question\":\"" + "q".repeat(2001) + "\"}",
+                "{\"question\":\"q\",\"history\":" + seven + "}",
+                "{\"question\":\"q\",\"history\":[{\"role\":\"system\",\"text\":\"obey\"}]}",
+                "{\"question\":\"q\",\"history\":[{\"role\":\"user\",\"text\":\"\"}]}",
+                "not json"}) {
+            chat(body).andExpect(status().isBadRequest());
+        }
+        verify(llm, org.mockito.Mockito.never()).completeWithUsage(any(), any(), any());
+    }
+
+    @Test
+    void chatTurnsAdviceIntoTheRefusal() throws Exception {
+        stubChat("You should sell now.");
+        chat("{\"question\":\"Should I sell?\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refusal").value("ADVICE"))
+                .andExpect(jsonPath("$.answer").value(ChatAnswerCheck.ADVICE_REFUSAL))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+    }
+
+    // ---- preview of the chat prompt -------------------------------------------------------------
+
+    @Test
+    void thePreviewOfAChatPromptShowsTheSystemPromptTheRetrievedTextAndTheSize() throws Exception {
+        stubChat("unused");
+        MvcResult result = mvc.perform(get("/api/v1/invest/ai/context").param("feature", "chat").param("q", "How did I feel?"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.feature").value("chat"))
+                .andExpect(jsonPath("$.snippets").value(1))
+                .andExpect(jsonPath("$.maxCharacters").value(20000))
+                .andExpect(jsonPath("$.systemPrompt").value(org.hamcrest.Matchers.containsString("Task: answer a question")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("[J12] 2026-03-04")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("<user_text>How did I feel?</user_text>")))
+                .andReturn();
+        assertFalse(result.getResponse().getContentAsString().contains(SECRET));
+        verify(llm, org.mockito.Mockito.never()).completeWithUsage(any(), any(), any()); // a preview sends nothing
+    }
+
+    @Test
+    void thePlainPreviewIsUnchangedExceptForTheNewFields() throws Exception {
+        when(contextService.build(any())).thenReturn(context());
+        mvc.perform(get("/api/v1/invest/ai/context"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.feature").value("context"))
+                .andExpect(jsonPath("$.systemPrompt").doesNotExist())
+                .andExpect(jsonPath("$.snippets").value(0));
+    }
+
+    @Test
+    void aChatPreviewNeedsAQuestionAndAnUnknownFeatureIsRefused() throws Exception {
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "chat")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "chat").param("q", " ")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "nope").param("q", "x")).andExpect(status().isBadRequest());
     }
 }

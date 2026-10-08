@@ -1,5 +1,6 @@
 package trademind.tm_server.invest.ai;
 
+import trademind.tm_server.exceptions.BadRequestException;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -34,6 +35,8 @@ class AiServiceTest {
     static class FakeLlm implements LlmClient {
         final List<LlmOptions> options = new ArrayList<>();
         int calls;
+        String lastSystem;
+        String lastUser;
         RuntimeException failure;
         LlmResult reply = new LlmResult(REPLY_TEXT, 100, 20, "end_turn");
 
@@ -42,6 +45,8 @@ class AiServiceTest {
         @Override
         public LlmResult completeWithUsage(String system, String user, LlmOptions o) {
             calls++;
+            lastSystem = system;
+            lastUser = user;
             options.add(o);
             if (failure != null) throw failure;
             return reply;
@@ -152,7 +157,7 @@ class AiServiceTest {
     @Test
     void anOversizedPromptIsRefusedBeforeAnythingIsCounted() {
         AiService ai = service(true, "k", "m", 60, 6, 10);
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ai.call(AiFeature.CHAT, "123456", "123456"));
+        BadRequestException e = assertThrows(BadRequestException.class, () -> ai.call(AiFeature.CHAT, "123456", "123456"));
         assertEquals("The prompt is too large to send (12 of 10 characters)", e.getMessage());
         assertEquals(0, llm.calls);
         assertEquals(0, store.totals(LocalDate.parse("2026-10-06")).calls());

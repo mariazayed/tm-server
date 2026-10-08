@@ -29,6 +29,9 @@ class AiErrorMappingTest {
     @Autowired MockMvc mvc;
     @MockitoBean UserContextService contextService;
     @MockitoBean AiService ai;
+    @MockitoBean AiChatService chat;
+    @MockitoBean AiProperties properties;
+    @MockitoBean java.time.Clock clock;
 
     @Test
     void unavailableIs503WithTheReason() throws Exception {

@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **steps 1 (shared foundation) and 2 (retrieval) are built**; steps 3 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **steps 1 (shared foundation), 2 (retrieval) and 3 (chat endpoint) are built**; steps 4 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -339,7 +339,7 @@ Each step is a separate commit and leaves the app working.
 |---|---|---|
 | 1 | **Done.** `LlmResult`/`LlmOptions`, `AiService`, limits, `ai.enabled`, `/usage`, logging rules, tests | Safe base; no user-visible feature yet |
 | 2 | **Done.** `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
-| 3 | `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
+| 3 | **Done.** `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
 | 4 | Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
 | 6 | `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |

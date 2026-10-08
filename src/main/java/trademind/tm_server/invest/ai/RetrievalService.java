@@ -63,10 +63,14 @@ public class RetrievalService {
      * One piece of the owner's text a feature may quote.
      *
      * @param title   notes only; null for journal entries
+     * @param type    journal entries only (CHECKIN, QUICK, DECISION); null for notes
+     * @param mood    journal entries only, 1 (worried) to 5 (calm); null if not set or for notes
+     * @param tags    tag names, sorted
      * @param text    raw, unwrapped, at most {@link #MAX_SNIPPET_CHARS} characters (plus ellipses)
      * @param matched false for the always-included newest entries that did not match the question
      */
-    public record Snippet(Kind kind, long id, LocalDate date, String title, String text, boolean matched) {
+    public record Snippet(Kind kind, long id, LocalDate date, String title, String type, Short mood,
+                          List<String> tags, String text, boolean matched) {
         /** The short stable name the model cites it by, such as J12 or N7. */
         public String handle() {
             return kind.prefix + id;
@@ -79,7 +83,8 @@ public class RetrievalService {
         }
     }
 
-    private record Candidate(long id, LocalDateTime createdAt, String title, String body, double rank) {
+    private record Candidate(long id, LocalDateTime createdAt, String title, String type, Short mood, List<String> tags,
+                             String body, double rank) {
     }
 
     private final JdbcTemplate jdbc;
@@ -102,13 +107,15 @@ public class RetrievalService {
 
     private List<Snippet> journal(String query, List<String> terms) {
         List<Candidate> matches = query.isEmpty() ? List.of() : jdbc.query("""
-                SELECT e.id, e.created_at, e.body, ts_rank_cd(e.search_vector, q.tsq) AS rank
+                SELECT e.id, e.created_at, e.entry_type, e.mood, e.body, ts_rank_cd(e.search_vector, q.tsq) AS rank,
+                       (SELECT coalesce(array_agg(t.name ORDER BY t.name), '{}') FROM invest_journal_entry_tags jt
+                          JOIN invest_tags t ON t.id = jt.tag_id AND t.deleted_at IS NULL
+                         WHERE jt.entry_id = e.id) AS tags
                 FROM invest_journal_entries e, websearch_to_tsquery('english', ?) AS q(tsq)
                 WHERE e.deleted_at IS NULL AND e.search_vector @@ q.tsq
                 ORDER BY rank DESC, e.created_at DESC
                 LIMIT ?""",
-                (rs, i) -> new Candidate(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(), null,
-                        rs.getString("body"), rs.getDouble("rank")),
+                (rs, i) -> journalCandidate(rs, rs.getDouble("rank")),
                 query, MAX_JOURNAL * OVERFETCH);
 
         List<Snippet> out = new ArrayList<>();
@@ -118,10 +125,13 @@ public class RetrievalService {
             seen.add(c.id());
         }
         List<Candidate> newest = jdbc.query("""
-                SELECT id, created_at, body FROM invest_journal_entries
-                WHERE deleted_at IS NULL ORDER BY created_at DESC, id DESC LIMIT ?""",
-                (rs, i) -> new Candidate(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(), null,
-                        rs.getString("body"), 0),
+                SELECT e.id, e.created_at, e.entry_type, e.mood, e.body,
+                       (SELECT coalesce(array_agg(t.name ORDER BY t.name), '{}') FROM invest_journal_entry_tags jt
+                          JOIN invest_tags t ON t.id = jt.tag_id AND t.deleted_at IS NULL
+                         WHERE jt.entry_id = e.id) AS tags
+                FROM invest_journal_entries e
+                WHERE e.deleted_at IS NULL ORDER BY e.created_at DESC, e.id DESC LIMIT ?""",
+                (rs, i) -> journalCandidate(rs, 0),
                 RECENT_ENTRIES);
         for (Candidate c : newest) {
             if (seen.add(c.id())) out.add(snippet(Kind.JOURNAL, c, false, terms));
@@ -132,17 +142,31 @@ public class RetrievalService {
     private List<Snippet> notes(String query, List<String> terms) {
         if (query.isEmpty()) return List.of();
         List<Candidate> matches = jdbc.query("""
-                SELECT n.id, n.created_at, n.title, n.body, ts_rank_cd(n.search_vector, q.tsq) AS rank
+                SELECT n.id, n.created_at, n.title, n.body, ts_rank_cd(n.search_vector, q.tsq) AS rank,
+                       (SELECT coalesce(array_agg(t.name ORDER BY t.name), '{}') FROM invest_learning_note_tags nt
+                          JOIN invest_tags t ON t.id = nt.tag_id AND t.deleted_at IS NULL
+                         WHERE nt.note_id = n.id) AS tags
                 FROM invest_learning_notes n, websearch_to_tsquery('english', ?) AS q(tsq)
                 WHERE n.deleted_at IS NULL AND n.search_vector @@ q.tsq
                 ORDER BY rank DESC, n.created_at DESC
                 LIMIT ?""",
                 (rs, i) -> new Candidate(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(),
-                        rs.getString("title"), rs.getString("body"), rs.getDouble("rank")),
+                        rs.getString("title"), null, null, tags(rs), rs.getString("body"), rs.getDouble("rank")),
                 query, MAX_NOTES * OVERFETCH);
         List<Snippet> out = new ArrayList<>();
         for (Candidate c : reRank(matches, MAX_NOTES)) out.add(snippet(Kind.NOTE, c, true, terms));
         return out;
+    }
+
+    private static Candidate journalCandidate(java.sql.ResultSet rs, double rank) throws java.sql.SQLException {
+        short raw = rs.getShort("mood");
+        Short mood = rs.wasNull() ? null : raw; // must be read right after the column it describes
+        return new Candidate(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(), null,
+                rs.getString("entry_type"), mood, tags(rs), rs.getString("body"), rank);
+    }
+
+    private static List<String> tags(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return List.of((String[]) rs.getArray("tags").getArray());
     }
 
     // ---- ranking and excerpts (pure, unit-tested) ---------------------------------------------
@@ -164,7 +188,8 @@ public class RetrievalService {
     }
 
     private static Snippet snippet(Kind kind, Candidate c, boolean matched, List<String> terms) {
-        return new Snippet(kind, c.id(), c.createdAt().toLocalDate(), c.title(), excerpt(c.body(), terms), matched);
+        return new Snippet(kind, c.id(), c.createdAt().toLocalDate(), c.title(), c.type(), c.mood(), c.tags(),
+                excerpt(c.body(), terms), matched);
     }
 
     /**

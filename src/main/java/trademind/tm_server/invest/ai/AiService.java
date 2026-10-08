@@ -1,5 +1,6 @@
 package trademind.tm_server.invest.ai;
 
+import trademind.tm_server.exceptions.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,23 +58,28 @@ public class AiService {
         return AiController.status(properties.enabled(), apiKey, model);
     }
 
+    /** @throws AiUnavailableException when AI is switched off or not configured */
+    public void requireAvailable() {
+        AiController.Status status = status();
+        if (!status.configured()) {
+            throw new AiUnavailableException(status.reason());
+        }
+    }
+
     /**
      * Runs one model call.
      *
      * @throws AiUnavailableException  switched off or not configured (nothing was sent)
      * @throws AiLimitExceededException a cap was reached (nothing was sent)
-     * @throws IllegalArgumentException the prompt is over {@code ai.limits.max-prompt-chars} (nothing was sent)
+     * @throws BadRequestException the prompt is over {@code ai.limits.max-prompt-chars} (nothing was sent)
      * @throws AiUpstreamException      the call failed; no detail is carried
      */
     public LlmResult call(AiFeature feature, String systemPrompt, String userPrompt) {
-        AiController.Status status = status();
-        if (!status.configured()) {
-            throw new AiUnavailableException(status.reason());
-        }
+        requireAvailable();
         int chars = systemPrompt.length() + userPrompt.length();
         int max = properties.limits().maxPromptChars();
         if (chars > max) {
-            throw new IllegalArgumentException("The prompt is too large to send (" + chars + " of " + max + " characters)");
+            throw new BadRequestException("The prompt is too large to send (" + chars + " of " + max + " characters)");
         }
         LocalDate day = today();
         reserve(day, feature);

@@ -255,7 +255,7 @@ why the preview endpoint exists.
 **Retrieval (`RetrievalService`, V27).** Finds the journal entries and learning notes that relate to a question, so
 a feature can quote older material than the last five entries. It uses PostgreSQL full-text search over generated
 `search_vector` columns (GIN indexes), so there is no embeddings provider and nothing extra leaves the server. It is
-read-only and nothing calls it from an endpoint yet (the chat in the next step will).
+read-only; the chat endpoint below is its first user.
 
 - **Matching:** any of the question's words, ranked so rows matching more of them come first; common words are ignored and
   words are stemmed (`worry` finds `worried`) by the `english` configuration. Only letters and digits of the question are used,
@@ -269,6 +269,35 @@ read-only and nothing calls it from an endpoint yet (the chat in the next step w
   newest entries. Soft-deleted rows are never returned. The text is raw: callers must wrap it with `UserContextRenderer.wrap`
   before putting it in a prompt.
 - **Handles:** each snippet has a stable name, `J12` for journal entry 12 and `N7` for note 7, for citations.
+
+**Ask your journal (`POST /api/v1/invest/ai/chat`).** A read-only chat over your rules, journal entries and learning
+notes. It writes nothing; the server keeps no conversation, so the client sends the last few turns each time.
+
+Request: `{"question": "...", "history": [{"role": "user|assistant", "text": "..."}], "includeJournal": true, "includeNotes": true}`.
+The question is at most 2,000 characters; `history` at most 6 messages, 2,000 characters each and 6,000 in total; both
+switches default to true. Bad input answers `400`. Response:
+`{answer, sources: [{handle, type, id, date, snippet}], usedJournal, usedNotes, truncated, cutOff, model, refusal}`.
+
+- **What the model is sent:** the standing rules, the task instructions, your plan, rules and numbers (no free text from the
+  standing context), the snippets found by `RetrievalService` for this question, the earlier turns, and the question. Each
+  snippet has a handle (`J12`, `N7`) and its date, mood and tags. A source you switched off is not read and the model is
+  told you chose not to share it, so it does not report "nothing found". Everything you or the client wrote, including
+  earlier assistant turns, is wrapped in `<user_text>` tags and flattened to one line.
+- **Size budget:** the whole prompt stays within `ai.limits.max-prompt-chars`. If it would not, older notes are dropped
+  first, then snippets are shortened, then older entries are dropped, then the oldest earlier turns. The rules, numbers and
+  question are never dropped; `truncated` says something was left out.
+- **Citations are checked.** The model cites with `[J12]`. A handle that was not in the prompt is removed from the answer
+  and is never returned as a source, so an invented citation cannot reach the screen.
+- **Advice is blocked.** An answer that tells you to buy, sell, hold or change the plan, or predicts a price or return with a
+  number, is replaced by a fixed refusal (`refusal: "ADVICE"`, no sources). A sentence that restates your own rule or note
+  ("your rule says you should never sell in a crash") is allowed. The patterns are short on purpose and will sometimes
+  refuse a harmless answer; the system prompt remains the main defence. `refusal: "EMPTY"` means no usable answer came back.
+- **Errors:** `503` AI off or not configured, `429` a cap was reached (with `Retry-After`), `502` the model call failed
+  (no detail is passed on), `400` bad input. Each answered question is one counted call.
+- **Preview:** `GET /api/v1/invest/ai/context?feature=chat&q=<question>` (plus `includeJournal` / `includeNotes`) returns
+  the system prompt and the full message that would be sent for that question, built by the same code as the chat, and
+  sends nothing. `characters` there is system plus message, the amount the size cap counts. Without `feature` the
+  endpoint is the standing-context preview as before.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never
