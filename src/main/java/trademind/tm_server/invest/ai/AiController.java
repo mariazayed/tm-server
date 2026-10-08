@@ -42,15 +42,18 @@ public class AiController {
     private final AiService aiService;
     private final AiChatService chatService;
     private final RuleCheckAiService ruleCheckService;
+    private final CheckinSummaryAiService checkinService;
     private final AiProperties properties;
     private final Clock clock;
 
     public AiController(UserContextService contextService, AiService aiService, AiChatService chatService,
-                        RuleCheckAiService ruleCheckService, AiProperties properties, Clock clock) {
+                        RuleCheckAiService ruleCheckService, CheckinSummaryAiService checkinService, AiProperties properties,
+                        Clock clock) {
         this.contextService = contextService;
         this.aiService = aiService;
         this.chatService = chatService;
         this.ruleCheckService = ruleCheckService;
+        this.checkinService = checkinService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -99,7 +102,8 @@ public class AiController {
                                   @RequestParam(defaultValue = "context") String feature,
                                   @RequestParam(required = false) String q,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                  @RequestParam(required = false) String month) {
         if ("chat".equals(feature)) {
             if (q == null || q.isBlank()) {
                 throw new BadRequestException("Add q=<your question> to preview a chat prompt");
@@ -122,8 +126,19 @@ public class AiController {
                     system.length() + text.length(), properties.limits().maxPromptChars(), text, "rulecheck", system,
                     built.entries().size());
         }
+        if ("checkin".equals(feature)) {
+            if (month == null || month.isBlank()) {
+                throw new BadRequestException("Add month=YYYY-MM to preview the check-in summary");
+            }
+            CheckinPromptBuilder.Built built = checkinService.buildPrompt(month, includeJournal);
+            String system = built.prompt().system();
+            String text = built.prompt().user();
+            return new ContextPreview(clock.instant(), includeJournal, false, built.skipped() > 0,
+                    system.length() + text.length(), properties.limits().maxPromptChars(), text, "checkin", system,
+                    built.entries().size());
+        }
         if (!"context".equals(feature)) {
-            throw new BadRequestException("Unknown feature (use context, chat or rulecheck)");
+            throw new BadRequestException("Unknown feature (use context, chat, rulecheck or checkin)");
         }
         UserContext context = contextService.build(new ContextOptions(includeJournal, includeNotes));
         UserContextRenderer.Rendered rendered = UserContextRenderer.render(context);

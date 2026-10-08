@@ -260,6 +260,8 @@ Request: `{ "from": "2026-09-01", "to": "2026-09-30" }` (max 92 days, max 40 ent
 
 Apply: none. A finding can offer **Add a reflection**, which opens the entry sheet pre-filled with a *reflection* template ("I noticed ... the rule says ... what I'll do next time:") for you to write. Findings are never stored, and the server never marks an entry.
 
+**As built in step 8:** `POST /api/v1/invest/ai/checkin-summary` always returns the month's facts (plain arithmetic, no AI, works with `ai.enabled` off); the AI draft is opt-in with `includeModel: true`, with `includeJournal` choosing whether entry text is sent. Where the text above was open: the model replies with JSON `{text, sources}`; the draft is rejected if it is empty, over 220 words, advice, or contains a number not in the facts or in the owner's own entries (the entry numbers are allowed because the owner wrote them); a rejected draft degrades to the facts with a reason instead of an error; only the newest 20 entries of the month are sent. `GET /ai/context?feature=checkin&month=` previews the exact prompt. The review screen now has two tabs, Rule check and Summary; "Use in check-in" opens the entry sheet and saves nothing.
+
 ### 6.4 Feature 2c: Tag suggestions
 
 **Goal**: suggest tags for a draft or existing entry, reusing your existing vocabulary.

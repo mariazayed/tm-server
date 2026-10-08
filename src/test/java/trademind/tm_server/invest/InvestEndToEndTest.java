@@ -445,4 +445,39 @@ class InvestEndToEndTest {
         // The usage counter saw the call.
         mvc.perform(get("/api/v1/invest/ai/usage")).andExpect(jsonPath("$.callsByFeature.RULE_CHECK").value(1));
     }
+
+    @Test
+    @Order(17)
+    void theCheckinSummaryReturnsFactsWithoutAiAndAWordedDraftWithIt() throws Exception {
+        String month = TODAY.withDayOfMonth(1).toString().substring(0, 7);
+        // Facts only: no model call, and the numbers come from the code.
+        mvc.perform(post("/api/v1/invest/ai/checkin-summary").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"month\":\"" + month + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.kind").value("CHECKIN_SUMMARY"))
+                .andExpect(jsonPath("$.month").value(month))
+                .andExpect(jsonPath("$.text").doesNotExist())
+                .andExpect(jsonPath("$.factsLines").isArray())
+                .andExpect(jsonPath("$.facts.currency").value("USD"))
+                .andExpect(jsonPath("$.model.requested").value(false));
+
+        // With a draft: a number the code did not compute is rejected, the repeat is accepted.
+        org.mockito.Mockito.when(llm.completeWithUsage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new trademind.tm_server.ai.LlmResult("{\"text\":\"**What happened**\\nA gain of 987654.32 USD.\",\"sources\":[]}", 800, 60, "end_turn"))
+                .thenReturn(new trademind.tm_server.ai.LlmResult("{\"text\":\"**What happened**\\nThe month is summarised in words only.\",\"sources\":[]}", 800, 40, "end_turn"));
+        mvc.perform(post("/api/v1/invest/ai/checkin-summary").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"month\":\"" + month + "\",\"includeModel\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.text").value("**What happened**\nThe month is summarised in words only."))
+                .andExpect(jsonPath("$.model.ran").value(true));
+
+        mvc.perform(post("/api/v1/invest/ai/checkin-summary").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"month\":\"2999-01\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "checkin").param("month", month))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("## Facts")));
+        mvc.perform(get("/api/v1/invest/ai/usage")).andExpect(jsonPath("$.callsByFeature.CHECKIN_SUMMARY").value(2));
+    }
 }

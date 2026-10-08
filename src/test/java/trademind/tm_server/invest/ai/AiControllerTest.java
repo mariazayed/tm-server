@@ -66,6 +66,7 @@ class AiControllerTest {
     @MockitoBean UserContextService contextService;
     @MockitoBean RetrievalService retrieval;
     @MockitoBean RuleCheckAiService ruleCheckAi;
+    @MockitoBean CheckinSummaryAiService checkinAi;
     @MockitoBean trademind.tm_server.ai.LlmClient llm;
     @Autowired AiService ai;
     @Autowired InMemoryAiUsageStore usage;
@@ -288,5 +289,35 @@ class AiControllerTest {
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck").param("from", "soon").param("to", "2026-10-15"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void thePreviewOfTheCheckinSummaryShowsTheFactsAndTheEntries() throws Exception {
+        var entry = new trademind.tm_server.invest.checkin.CheckinFactsService.MonthEntry(12,
+                java.time.LocalDateTime.parse("2026-09-04T14:20"), "QUICK", (short) 2, List.of("fear"), "I was scared.");
+        var built = CheckinPromptBuilder.build("2026-09", List.of("Plan: 300.00 USD per month, buy day 1 (due 2026-09-01).", "Status: DONE."),
+                List.of(entry), true, 20000);
+        when(checkinAi.buildPrompt("2026-09", true)).thenReturn(built);
+        MvcResult result = mvc.perform(get("/api/v1/invest/ai/context").param("feature", "checkin").param("month", "2026-09"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.feature").value("checkin"))
+                .andExpect(jsonPath("$.snippets").value(1))
+                .andExpect(jsonPath("$.systemPrompt").value(org.hamcrest.Matchers.containsString("Task: write a short summary")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("- Plan: 300.00 USD per month")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("[J12]")))
+                .andReturn();
+        assertFalse(result.getResponse().getContentAsString().contains(SECRET));
+        verify(llm, org.mockito.Mockito.never()).completeWithUsage(any(), any(), any()); // a preview sends nothing
+    }
+
+    @Test
+    void theCheckinPreviewNeedsAMonthAndHonoursTheJournalSwitch() throws Exception {
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "checkin")).andExpect(status().isBadRequest());
+        var built = CheckinPromptBuilder.build("2026-09", List.of("Status: DONE."), List.of(), false, 20000);
+        when(checkinAi.buildPrompt("2026-09", false)).thenReturn(built);
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "checkin").param("month", "2026-09").param("includeJournal", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.includeJournal").value(false))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("chose not to share their journal")));
     }
 }

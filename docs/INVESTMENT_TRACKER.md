@@ -343,6 +343,26 @@ The exact checks and their conventions (rule text is free text and is never pars
 | `MISSED_MONTH` | A month with no purchase has no journal entry written in that month or the 7 days after it | Reported only once those 7 days have passed, so you are not told off while there is still time to write the note |
 
 Plan changes made before this feature existed have no history, so `PLAN_CHANGE` can only see changes from now on.
+
+**Monthly check-in summary (`POST /api/v1/invest/ai/checkin-summary`).** Request `{"month": "2026-09", "includeModel": false,
+"includeJournal": true}`. The month must be `YYYY-MM`, not before the plan started and not in the future (otherwise `400`).
+Response `{kind, month, text, facts, factsLines, sources, contributionId, model}`.
+
+- **The facts always come back and need no AI.** `facts` / `factsLines` are plain arithmetic from your own records: planned and
+  invested amounts, fees, shares, average price, how many days after the buy day you bought, streaks, missed months, the value at
+  the month end (left out when there is no price), journal entry counts, moods, tags and rule notes. With `includeModel` false
+  (the default) nothing is sent anywhere and `ai.enabled` can be off.
+- **The draft (`includeModel: true`)** is opt-in per request. It sends the facts and, with `includeJournal` true, the text of up to
+  the **newest 20** entries of that month (each cut to 600 characters) to the AI provider. `GET /ai/context?feature=checkin&month=...`
+  shows the exact prompt first and sends nothing. The model returns JSON `{text, sources}`: four short bold sections, at most about
+  180 words.
+- **The draft is checked, not trusted.** It is rejected when it is empty, over 220 words, gives investment advice, or contains a
+  **number that is not in the facts or in your own entries** (compared by value, so `1,200` equals `1200.00`). Bracket handles are
+  stripped and `sources` keeps only entries that were really sent. A rejected or failed draft is not an error: you still get the
+  facts, with `model: {requested: true, ran: false, reason}`. `model.entriesSent` / `entriesSkipped` say what was read and what
+  was left out.
+- **Nothing is saved.** The app's "Use in check-in" opens the journal entry sheet with the draft and `contributionId` (the month's
+  latest buy) filled in; it is stored only if you save it.
 Exact findings have `source: "DETERMINISTIC"`, `ruleId: null`, `quote: null` and `confidence: "HIGH"`. The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
