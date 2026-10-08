@@ -306,12 +306,35 @@ in the requested shape, otherwise one repeat with the reason, otherwise `502` ("
 used"). Ids the model returns are checked against the ids it was shown, and quotes against your actual text, before anything
 reaches the app. No endpoint uses this yet. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
 
-**Consistency checks (`POST /api/v1/invest/ai/rule-check`).** Checks a date range against your own rules with plain code:
-no model, nothing sent anywhere, and it works with `ai.enabled` off. Request `{"from": "2026-09-17", "to": "2026-10-16"}`
-(at most 92 days, otherwise `400`). Response `{from, to, waitHours, findings, checks}`; `checks` lists each check with
-`RAN` or `OFF` and the reason it is off. A finding is `{check, source: "DETERMINISTIC", date, message, entryIds, ruleId: null,
-quote: null, confidence: "HIGH"}`, newest first. Findings are computed on request and never stored, and nothing marks an entry.
-A finding is a prompt to look, not a verdict. Rule text is free text and is never parsed, so the checks use these conventions:
+**Consistency checks (`POST /api/v1/invest/ai/rule-check`).** Checks a date range against your own rules. The **exact checks**
+are plain code: no model, nothing sent anywhere, and they work with `ai.enabled` off. Request
+`{"from": "2026-09-17", "to": "2026-10-16", "includeModel": false}` (at most 92 days, otherwise `400`; `includeModel` defaults to
+false). Response `{from, to, waitHours, findings, checks, model}`; `checks` lists each exact check with `RAN` or `OFF` and the
+reason it is off. A finding is `{check, source, date, message, entryIds, ruleId, quote, confidence}`, newest first. Findings are
+computed on request and never stored, and nothing marks an entry. A finding is a prompt to look, not a verdict.
+
+**The AI reading (`includeModel: true`).** Opt-in per request, because it sends your **rules and the text of the journal entries in
+the range** to the AI provider (`GET /ai/context?feature=rulecheck&from=...&to=...` shows the exact prompt first and sends
+nothing). The model is asked which entries show you acting against one of your own rules, never whether a decision was good, and
+never for advice. The exact checks always run first and are always returned; the AI part is added to them.
+
+- **What is sent:** your rules (handles `R1..Rn`) and up to the **newest 40** entries in the range (handles `J<id>`, each cut to 600
+  characters, shortened or dropped oldest-first to fit `ai.limits.max-prompt-chars`). `model.entriesChecked` and
+  `model.entriesSkipped` say how many were read and how many were left out. Rules are never dropped. Everything you wrote is wrapped
+  as data, so text in an entry cannot give the model instructions.
+- **What comes back is checked, not trusted.** A finding is kept only if it names a rule and entries that were really in the prompt;
+  its quote is kept only if it is really in a cited entry (otherwise the finding stays without the quote); **HIGH confidence needs a
+  verified quote** (otherwise it becomes MEDIUM); a finding whose reason gives investment advice is discarded; at most 10 are kept,
+  best confidence first. `model.dropped` counts the discarded ones. If the model proposed findings and every one was unusable, it
+  is asked once more (see the JSON toolkit above) before giving up. A model finding has `source: "MODEL"`, the `ruleId` it
+  concerns, a verified `quote` or null, and `confidence` LOW, MEDIUM or HIGH (the app hides LOW by default).
+- **If the AI part cannot run you still get the exact result.** Instead of an error, `model` is
+  `{requested: true, ran: false, reason}` with the reason: AI switched off or not configured, a daily or per-minute limit reached,
+  no rules written, no entries in the range, the AI service did not answer, an unusable reply twice, or too much text for one call.
+  A bad range is still a `400`, because that is the caller's mistake. Each model call counts as a call against the daily and
+  per-minute limits; a repeat counts as another.
+
+The exact checks and their conventions (rule text is free text and is never parsed):
 
 | Check | Finding when | How it works |
 |---|---|---|
@@ -320,7 +343,7 @@ A finding is a prompt to look, not a verdict. Rule text is free text and is neve
 | `MISSED_MONTH` | A month with no purchase has no journal entry written in that month or the 7 days after it | Reported only once those 7 days have passed, so you are not told off while there is still time to write the note |
 
 Plan changes made before this feature existed have no history, so `PLAN_CHANGE` can only see changes from now on.
-The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
+Exact findings have `source: "DETERMINISTIC"`, `ruleId: null`, `quote: null` and `confidence: "HIGH"`. The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never

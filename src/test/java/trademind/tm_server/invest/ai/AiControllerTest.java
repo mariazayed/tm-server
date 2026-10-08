@@ -65,6 +65,7 @@ class AiControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean UserContextService contextService;
     @MockitoBean RetrievalService retrieval;
+    @MockitoBean RuleCheckAiService ruleCheckAi;
     @MockitoBean trademind.tm_server.ai.LlmClient llm;
     @Autowired AiService ai;
     @Autowired InMemoryAiUsageStore usage;
@@ -257,5 +258,35 @@ class AiControllerTest {
         mvc.perform(get("/api/v1/invest/ai/context").param("feature", "chat")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/invest/ai/context").param("feature", "chat").param("q", " ")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/invest/ai/context").param("feature", "nope").param("q", "x")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void thePreviewOfTheJournalCheckShowsThePromptForTheRange() throws Exception {
+        var entry = new RuleCheckPromptBuilder.EntryIn(12, java.time.LocalDateTime.parse("2026-10-05T10:00"), "QUICK", (short) 2,
+                List.of("fear"), "I sold in the crash.");
+        var built = RuleCheckPromptBuilder.build(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-15"),
+                List.of(new RuleCheckPromptBuilder.Rule(5, "Never sell in a crash.")), List.of(entry), 1, 20000);
+        when(ruleCheckAi.buildPrompt(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-15"))).thenReturn(built);
+        MvcResult result = mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck")
+                        .param("from", "2026-10-01").param("to", "2026-10-15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.feature").value("rulecheck"))
+                .andExpect(jsonPath("$.snippets").value(1))
+                .andExpect(jsonPath("$.truncated").value(false))
+                .andExpect(jsonPath("$.systemPrompt").value(org.hamcrest.Matchers.containsString("Task: check the owner's journal")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("[R1] <user_text>Never sell in a crash.</user_text>")))
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("[J12]")))
+                .andReturn();
+        assertFalse(result.getResponse().getContentAsString().contains(SECRET));
+        verify(llm, org.mockito.Mockito.never()).completeWithUsage(any(), any(), any()); // a preview sends nothing
+    }
+
+    @Test
+    void aJournalCheckPreviewNeedsBothDates() throws Exception {
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck").param("from", "2026-10-01"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck").param("from", "soon").param("to", "2026-10-15"))
+                .andExpect(status().isBadRequest());
     }
 }

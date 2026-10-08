@@ -30,6 +30,7 @@ class AiErrorMappingTest {
     @MockitoBean UserContextService contextService;
     @MockitoBean AiService ai;
     @MockitoBean AiChatService chat;
+    @MockitoBean RuleCheckAiService ruleCheck;
     @MockitoBean AiProperties properties;
     @MockitoBean java.time.Clock clock;
 

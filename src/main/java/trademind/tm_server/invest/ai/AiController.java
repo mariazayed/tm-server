@@ -1,6 +1,7 @@
 package trademind.tm_server.invest.ai;
 
 import trademind.tm_server.exceptions.BadRequestException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import trademind.tm_server.constants.AppConstants;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:4300")
@@ -39,14 +41,16 @@ public class AiController {
     private final UserContextService contextService;
     private final AiService aiService;
     private final AiChatService chatService;
+    private final RuleCheckAiService ruleCheckService;
     private final AiProperties properties;
     private final Clock clock;
 
     public AiController(UserContextService contextService, AiService aiService, AiChatService chatService,
-                        AiProperties properties, Clock clock) {
+                        RuleCheckAiService ruleCheckService, AiProperties properties, Clock clock) {
         this.contextService = contextService;
         this.aiService = aiService;
         this.chatService = chatService;
+        this.ruleCheckService = ruleCheckService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -93,7 +97,9 @@ public class AiController {
     public ContextPreview context(@RequestParam(defaultValue = "true") boolean includeJournal,
                                   @RequestParam(defaultValue = "true") boolean includeNotes,
                                   @RequestParam(defaultValue = "context") String feature,
-                                  @RequestParam(required = false) String q) {
+                                  @RequestParam(required = false) String q,
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         if ("chat".equals(feature)) {
             if (q == null || q.isBlank()) {
                 throw new BadRequestException("Add q=<your question> to preview a chat prompt");
@@ -105,8 +111,19 @@ public class AiController {
                     system.length() + text.length(), properties.limits().maxPromptChars(), text, "chat", system,
                     built.sources().size());
         }
+        if ("rulecheck".equals(feature)) {
+            if (from == null || to == null) {
+                throw new BadRequestException("Add from=<date>&to=<date> to preview the journal check");
+            }
+            RuleCheckPromptBuilder.Built built = ruleCheckService.buildPrompt(from, to);
+            String system = built.prompt().system();
+            String text = built.prompt().user();
+            return new ContextPreview(clock.instant(), true, false, built.skipped() > 0,
+                    system.length() + text.length(), properties.limits().maxPromptChars(), text, "rulecheck", system,
+                    built.entries().size());
+        }
         if (!"context".equals(feature)) {
-            throw new BadRequestException("Unknown feature (use context or chat)");
+            throw new BadRequestException("Unknown feature (use context, chat or rulecheck)");
         }
         UserContext context = contextService.build(new ContextOptions(includeJournal, includeNotes));
         UserContextRenderer.Rendered rendered = UserContextRenderer.render(context);

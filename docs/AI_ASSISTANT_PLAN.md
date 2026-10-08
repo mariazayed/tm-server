@@ -256,6 +256,8 @@ Request: `{ "from": "2026-09-01", "to": "2026-09-30" }` (max 92 days, max 40 ent
 
 **As built in step 6 (layer 1 only):** `POST /api/v1/invest/ai/rule-check` runs the three deterministic checks and works with `ai.enabled` off. The exact definitions chosen where the text above was open (the 14-day look-back for a decision, the earliest decision starting the clock, any entry counting as the note, the 7-day grace for a missed month, `ruleId` always null for deterministic findings, the extra `checks` list saying what ran) are in `docs/INVESTMENT_TRACKER.md`. The model layer and the 40-entry cap arrive in step 7.
 
+**As built in step 7 (layer 2):** `includeModel: true` on the same endpoint adds the model's reading; it is opt-in per request and the review screen warns what is sent. Where the text above was open: findings carry `source: "MODEL"` and the `ruleId`; the model replies with handles (`R1`, `J12`) that the server maps back and verifies; HIGH confidence requires a verified quote; findings that give advice are discarded; an all-invalid reply gets the one repeat from the JSON toolkit; if the AI part cannot run the exact result is still returned with a reason in `model` instead of an error. The newest 40 entries are sent (fewer if the size budget needs it), and the response says how many were left out. `GET /ai/context?feature=rulecheck&from=&to=` previews the exact prompt. The review screen is a single page for now (range, AI switch, results); the check-in summary joins it in step 8.
+
 Apply: none. A finding can offer **Add a reflection**, which opens the entry sheet pre-filled with a *reflection* template ("I noticed ... the rule says ... what I'll do next time:") for you to write. Findings are never stored, and the server never marks an entry.
 
 ### 6.4 Feature 2c: Tag suggestions
@@ -346,7 +348,7 @@ Each step is a separate commit and leaves the app working.
 | 4 | **Done.** Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | **Done.** JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
 | 6 | `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |
-| 7 | Model layer for `/rule-check` + review screen | Feature 2b |
+| 7 | **Done.** Model layer for `/rule-check` + review screen | Feature 2b |
 | 8 | `/checkin-summary` + facts block + number check + UI | Feature 2a |
 | 9 | `/tag-suggestions` + entry sheet button | Feature 2c |
 | 10 | Docs update (`INVESTMENT_TRACKER.md`), guardrail tests refreshed, manual acceptance pass | Done |

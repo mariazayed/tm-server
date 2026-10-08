@@ -58,12 +58,17 @@ public class RuleCheckService {
         this.clock = clock;
     }
 
-    public Result run(LocalDate from, LocalDate to) {
+    /** @throws BadRequestException unless both dates are given, in order, and at most {@value #MAX_RANGE_DAYS} days apart */
+    public static void validateRange(LocalDate from, LocalDate to) {
         if (from == null || to == null) throw new BadRequestException("Choose a from and a to date");
         if (to.isBefore(from)) throw new BadRequestException("The to date is before the from date");
         if (ChronoUnit.DAYS.between(from, to) + 1 > MAX_RANGE_DAYS) {
             throw new BadRequestException("Choose a range of at most " + MAX_RANGE_DAYS + " days");
         }
+    }
+
+    public Result run(LocalDate from, LocalDate to) {
+        validateRange(from, to);
         InvestSettings s = settings.findById(InvestSettings.SINGLETON_ID).orElseThrow();
         Facts facts = new Facts(from, to, LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC), s.getRuleWaitHours(),
                 s.getCurrency(), entries(from, to), changes(from, to), missedMonths());

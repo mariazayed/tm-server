@@ -400,4 +400,49 @@ class InvestEndToEndTest {
                                 .formatted(TODAY.minusMonths(2).withDayOfMonth(1))))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @Order(16)
+    void theModelPartOfTheConsistencyCheckWorksOverHttpAndNeverReplacesTheExactPart() throws Exception {
+        String range = "\"from\":\"" + TODAY.minusDays(30) + "\",\"to\":\"" + TODAY + "\"";
+        long ruleId = ((Number) JsonPath.read(body(mvc.perform(get("/api/v1/invest/rules")).andReturn()), "$[0].id")).longValue();
+        // Journal entries were written earlier in this run; take one that is in the range.
+        String entries = body(mvc.perform(get("/api/v1/invest/journal")).andReturn());
+        long entryId = ((Number) JsonPath.read(entries, "$.items[0].id")).longValue();
+
+        org.mockito.Mockito.when(llm.completeWithUsage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new trademind.tm_server.ai.LlmResult("{\"findings\":[{\"rule\":\"R1\",\"entries\":[\"J" + entryId
+                        + "\"],\"reason\":\"This entry looks like it goes against the rule.\",\"quote\":\"not in the entry at all\","
+                        + "\"confidence\":\"HIGH\"},{\"rule\":\"R99\",\"entries\":[\"J" + entryId
+                        + "\"],\"reason\":\"Invented rule.\",\"quote\":null,\"confidence\":\"HIGH\"}]}", 900, 90, "end_turn"));
+
+        // Not asked for: the model is not called.
+        mvc.perform(post("/api/v1/invest/ai/rule-check").contentType(MediaType.APPLICATION_JSON).content("{" + range + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model.requested").value(false));
+        org.mockito.Mockito.verify(llm, org.mockito.Mockito.never()).completeWithUsage(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+
+        // Asked for: the invented rule is dropped, the unverifiable quote is dropped and HIGH becomes MEDIUM.
+        mvc.perform(post("/api/v1/invest/ai/rule-check").contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + range + ",\"includeModel\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model.requested").value(true))
+                .andExpect(jsonPath("$.model.ran").value(true))
+                .andExpect(jsonPath("$.model.dropped").value(1))
+                .andExpect(jsonPath("$.checks.length()").value(3))
+                .andExpect(jsonPath("$.findings[?(@.source=='MODEL')].ruleId").value(org.hamcrest.Matchers.contains((int) ruleId)))
+                .andExpect(jsonPath("$.findings[?(@.source=='MODEL')].confidence").value(org.hamcrest.Matchers.contains("MEDIUM")))
+                .andExpect(jsonPath("$.findings[?(@.source=='MODEL')].entryIds[0]").value(org.hamcrest.Matchers.contains((int) entryId)));
+
+        // The preview shows what that call sent.
+        mvc.perform(get("/api/v1/invest/ai/context").param("feature", "rulecheck")
+                        .param("from", TODAY.minusDays(30).toString()).param("to", TODAY.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("[J" + entryId + "]")));
+
+        // The usage counter saw the call.
+        mvc.perform(get("/api/v1/invest/ai/usage")).andExpect(jsonPath("$.callsByFeature.RULE_CHECK").value(1));
+    }
 }
