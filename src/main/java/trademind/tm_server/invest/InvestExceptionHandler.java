@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import trademind.tm_server.auth.RequestTooLargeException;
 import trademind.tm_server.base.ErrorResponse;
+import trademind.tm_server.invest.ai.AiInvalidReplyException;
 import trademind.tm_server.invest.ai.AiLimitExceededException;
 import trademind.tm_server.invest.ai.AiUnavailableException;
 import trademind.tm_server.invest.ai.AiUpstreamException;
@@ -56,6 +57,12 @@ public class InvestExceptionHandler {
     @ExceptionHandler(AiUpstreamException.class)
     public ResponseEntity<ErrorResponse> aiUpstream(AiUpstreamException ex, HttpServletRequest request) {
         return error(HttpStatus.BAD_GATEWAY, "The AI service did not answer. Try again in a moment.", request);
+    }
+
+    /** Two unusable replies in a row; the reply itself is never shown. */
+    @ExceptionHandler(AiInvalidReplyException.class)
+    public ResponseEntity<ErrorResponse> aiInvalidReply(AiInvalidReplyException ex, HttpServletRequest request) {
+        return error(HttpStatus.BAD_GATEWAY, "The AI answered in a form that could not be used. Try again.", request);
     }
 
     private static ResponseEntity<ErrorResponse> error(HttpStatus status, String message, HttpServletRequest request) {

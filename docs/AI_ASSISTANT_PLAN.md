@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) and 4 (chat screen) are built**; steps 5 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) 4 (chat screen) and 5 (JSON toolkit) are built**; steps 6 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -71,15 +71,16 @@ LlmResult completeWithUsage(String system, String user, LlmOptions options); // 
 - Read `usage` and `stop_reason` from the response. A `max_tokens` stop on a JSON feature is treated as a failed parse, not a partial result.
 - Streaming (SSE) is **phase 2 of feature 1**, not required for the first release. The first release returns the whole answer; the UI shows a spinner. Reason: it keeps the controller, the tests and the error handling simple. Add streaming only if answers feel slow.
 
-### 3.3 Structured output and validation (for feature 2)
+### 3.3 Structured output and validation (for feature 2) — built in step 5
 
-Ask the model for JSON only, in a fixed shape, and validate in Java before anything reaches the client:
+Ask the model for JSON only, in a fixed shape, and validate in Java before anything reaches the client. The pieces, all in `invest/ai`:
 
-- Parse with Jackson into a record. Unknown fields ignored, missing required fields are an error.
-- Strip a leading code fence if the model adds one.
-- On parse failure retry **once** with a short repair prompt ("Your last reply was not valid JSON for this schema: ..."), then return a typed error. Never pass unparsed model text to the client for the JSON features.
-- Every id the model returns (entry id, rule id, note id) is checked against the ids that were actually sent. Unknown ids are dropped. This is the main defence against invented citations.
-- Every quoted snippet is checked to be a substring of the source text (after whitespace normalisation). If it is not, drop the quote and keep the finding without it.
+- **`ModelJson.parse(raw, Record.class)`** parses a reply into a record. The whole reply must be one JSON object; a single wrapping code fence is removed, any other text around it is an error. Every record component must be present as a key (use an empty list or `null` when there is nothing; `null` is accepted for object fields, not for primitives). Types are strict: `"5"` is not 5, `5.5` is not an int, an enum takes only its exact names. Unknown keys are ignored. A failure is a `ModelJsonException` whose message names the problem and the field (`the field 'items[0].quote' is missing`) and **never contains text from the reply**, so it is safe to log and to put in a repair prompt.
+- **`AiJsonService.call(feature, system, user, Record.class, check)`** makes the model call, parses, and runs your `check` on the parsed value. If the reply is unusable (not JSON, wrong shape, cut off at the reply limit, or `check` threw a `ModelJsonException`), it repeats the call **once** with the original prompt plus a short note giving the reason, and if that is also unusable throws `AiInvalidReplyException` (HTTP 502, generic message). A reply that stopped at `max_tokens` is never trusted even if it parses. A failed call (network, provider error) is not repeated: that is not the model's formatting. Both calls count against the daily and per-minute caps; a cap reached on the repeat is the usual 429. Unparsed model text is never returned or kept; the bad reply is not echoed into the repair prompt.
+- **`KnownIds.keep(proposed, shown)`** keeps only ids that were in the prompt, in the model's order, without repeats. Unknown ids are dropped, never turned into a link or a citation.
+- **`QuoteCheck.verified(quote, sources)`** returns the quote only if it really appears in one source. It forgives case, runs of whitespace, curly versus straight quotes and dash styles, and allows `...` or `…` to skip text (each piece must appear in the same source, in order). It does not forgive different words, quotes under 4 characters, or quotes over 400. A quote that fails is dropped by the caller while the finding it supported is kept without it.
+
+The `check` function is where a feature applies `KnownIds` and `QuoteCheck`, and where it can reject a value outright (for example "every finding named an entry that was not shown") to get the one repeat.
 
 ### 3.4 Prompt-injection handling
 
@@ -341,7 +342,7 @@ Each step is a separate commit and leaves the app working.
 | 2 | **Done.** `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
 | 3 | **Done.** `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
 | 4 | **Done.** Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
-| 5 | JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
+| 5 | **Done.** JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
 | 6 | `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |
 | 7 | Model layer for `/rule-check` + review screen | Feature 2b |
 | 8 | `/checkin-summary` + facts block + number check + UI | Feature 2a |

@@ -299,6 +299,12 @@ switches default to true. Bad input answers `400`. Response:
   sends nothing. `characters` there is system plus message, the amount the size cap counts. Without `feature` the
   endpoint is the standing-context preview as before.
 
+**JSON replies (toolkit for the suggestion features).** Features that return suggestions instead of prose (rule check, tag
+suggestions, check-in summary) ask the model for JSON and read it only through `ModelJson` / `AiJsonService`: one JSON object
+in the requested shape, otherwise one repeat with the reason, otherwise `502` ("The AI answered in a form that could not be
+used"). Ids the model returns are checked against the ids it was shown, and quotes against your actual text, before anything
+reaches the app. No endpoint uses this yet. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
+
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never
 to invent facts outside the context, and to answer "I do not know" when something is not there. Tests pin

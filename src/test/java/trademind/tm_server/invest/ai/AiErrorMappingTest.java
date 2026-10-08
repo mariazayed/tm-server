@@ -57,4 +57,12 @@ class AiErrorMappingTest {
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message").value("The AI service did not answer. Try again in a moment."));
     }
+
+    @Test
+    void anUnusableReplyIs502WithAGenericMessage() throws Exception {
+        when(ai.usage()).thenThrow(new AiInvalidReplyException());
+        mvc.perform(get("/api/v1/invest/ai/usage"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message").value("The AI answered in a form that could not be used. Try again."));
+    }
 }
