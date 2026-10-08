@@ -1,6 +1,5 @@
 package trademind.tm_server.invest.ai;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,7 +9,6 @@ import trademind.tm_server.constants.AppConstants;
 
 import java.time.Instant;
 
-/** Under /api/v1/invest, so a login token is required. */
 @CrossOrigin(origins = "http://localhost:4300")
 @RestController
 @RequestMapping(AppConstants.URL_INVEST + "/ai")
@@ -26,19 +24,29 @@ public class AiController {
     }
 
     private final UserContextService contextService;
-    private final String apiKey;
-    private final String model;
+    private final AiService aiService;
 
-    public AiController(UserContextService contextService,
-                        @Value("${ai.provider.api-key:}") String apiKey,
-                        @Value("${ai.provider.model:}") String model) {
+    public AiController(UserContextService contextService, AiService aiService) {
         this.contextService = contextService;
-        this.apiKey = apiKey;
-        this.model = model;
+        this.aiService = aiService;
     }
 
     @GetMapping("/status")
     public Status status() {
+        return aiService.status();
+    }
+
+    /** Today's calls and tokens against the caps. */
+    @GetMapping("/usage")
+    public AiService.Usage usage() {
+        return aiService.usage();
+    }
+
+    static Status status(boolean enabled, String apiKey, String model) {
+        if (!enabled) {
+            boolean named = model != null && !model.isBlank();
+            return new Status(false, named ? model.strip() : null, "AI is switched off. Set ai.enabled=true on the server");
+        }
         return status(apiKey, model);
     }
 

@@ -30,7 +30,7 @@ tmp="$(mktemp "$BACKUP_DIR/.dump-XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
 # pipefail makes a pg_dump failure fail the whole pipeline, so a broken dump is never kept.
-pg_dump --no-owner --no-privileges --clean --if-exists -t 'invest_*' | gzip > "$tmp"
+pg_dump --no-owner --no-privileges --clean --if-exists -t 'invest_*' -T invest_ai_usage | gzip > "$tmp"
 gzip -t "$tmp"                      # the archive must be readable
 [ -s "$tmp" ] || { echo "dump is empty" >&2; exit 1; }
 mv "$tmp" "$final"

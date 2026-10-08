@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: proposal. Nothing in this document is built yet.
+Status: **step 1 (shared foundation) is built**; steps 2 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -107,7 +107,7 @@ Out of scope for v1: multi-turn memory on the server, voice, file upload, answer
 Two options, in order of effort. **Recommendation: ship v1 with option A, add B only if A's results are poor.**
 
 **A. Postgres full-text search (no new provider, no extra cost).**
-- Add a generated `tsvector` column and a GIN index on `invest_journal_entries.body` and on `invest_learning_notes` (title + body). Migration `V26__invest_fulltext_search.sql`.
+- Add a generated `tsvector` column and a GIN index on `invest_journal_entries.body` and on `invest_learning_notes` (title + body). Migration `V27__invest_fulltext_search.sql`.
 - Query: `websearch_to_tsquery('english', :q)` ranked with `ts_rank_cd`, top 8 entries and top 4 notes, filtered by `deleted_at IS NULL`.
 - Add a recency tie-break (small boost for newer rows) and a hard include of the 2 most recent entries so "lately" questions work.
 - Weakness: misses paraphrases ("scared" vs "worried"). Mitigation: the model is asked to restate the question as 3 to 6 search keywords first (see 4.3 step 2). That is one extra small call; make it optional behind a flag and measure whether it helps.
@@ -231,7 +231,7 @@ Apply: the UI offers "Insert into today's check-in" which calls `POST /journal` 
 Two layers:
 
 **Layer 1: deterministic checks in Java (no model).** Implemented as small classes behind a `RuleCheck` interface, each returning findings with the evidence ids:
-- *Wait-period check*: for entries tagged `#deviation` (or `#decision`), find the earliest related earlier entry in the same thread of tags or linked contribution and compare timestamps against the configured wait. Make the wait configurable: add `rule_wait_hours` (default 72) to `invest_settings` in migration `V27__invest_rule_wait_hours.sql`. Do **not** parse "72 hours" out of the rule text.
+- *Wait-period check*: for entries tagged `#deviation` (or `#decision`), find the earliest related earlier entry in the same thread of tags or linked contribution and compare timestamps against the configured wait. Make the wait configurable: add `rule_wait_hours` (default 72) to `invest_settings` in migration `V28__invest_rule_wait_hours.sql`. Do **not** parse "72 hours" out of the rule text.
 - *Plan-change check*: compare `invest_settings` history. This needs a history, which does not exist (settings are a single row). Add a tiny audit table `invest_settings_changes` (old and new values, `changed_at`) written by `SettingsService` on update; then flag any amount, ticker or buy-day change that has no journal entry created in the 7 days before it.
 - *Missed buy with no note*: a month with no contribution and no journal entry mentioning it.
 These three are cheap, accurate and explainable. They produce findings even when AI is not configured, so the feature degrades usefully.
@@ -283,10 +283,11 @@ Optional cache (the only server state in this plan, and not your data): `invest_
 
 | Migration | Change | Needed by |
 |---|---|---|
-| `V26__invest_fulltext_search.sql` | `tsvector` generated columns and GIN indexes on journal entry bodies and learning notes | Feature 1 |
-| `V27__invest_rule_wait_hours.sql` | `invest_settings.rule_wait_hours integer not null default 72 check (rule_wait_hours between 0 and 720)` | 2b |
-| `V28__invest_settings_changes.sql` | audit table for plan changes (old and new values, `changed_at`); same `id/created_at/updated_at/deleted_at/notes` columns as other tables so `EmbeddingSchemaTest` passes | 2b |
-| `V29__invest_ai_cache.sql` *(optional)* | response cache described in 6.4 | 2c, 2a |
+| `V26__invest_ai_usage.sql` | **Done (step 1).** Per-day call and token counts so the daily cap survives a restart. Not owner data; excluded from the nightly dump | Step 1 |
+| `V27__invest_fulltext_search.sql` | `tsvector` generated columns and GIN indexes on journal entry bodies and learning notes | Feature 1 |
+| `V28__invest_rule_wait_hours.sql` | `invest_settings.rule_wait_hours integer not null default 72 check (rule_wait_hours between 0 and 720)` | 2b |
+| `V29__invest_settings_changes.sql` | audit table for plan changes (old and new values, `changed_at`); same `id/created_at/updated_at/deleted_at/notes` columns as other tables so `EmbeddingSchemaTest` passes | 2b |
+| `V30__invest_ai_cache.sql` *(optional)* | response cache described in 6.4 | 2c, 2a |
 
 Also: add each new table to `InvestSchemaTest` and `invest-schema-reset.sql`, and to `ExportService` only if it holds user data (the settings audit does; the cache does not and must be excluded from export and backups).
 
@@ -336,8 +337,8 @@ Each step is a separate commit and leaves the app working.
 
 | # | Step | Result |
 |---|---|---|
-| 1 | `LlmResult`/`LlmOptions`, `AiService`, limits, `ai.enabled`, `/usage`, logging rules, tests | Safe base; no user-visible feature yet |
-| 2 | `V26` full-text search, `RetrievalService`, tests | Server can find relevant entries |
+| 1 | **Done.** `LlmResult`/`LlmOptions`, `AiService`, limits, `ai.enabled`, `/usage`, logging rules, tests | Safe base; no user-visible feature yet |
+| 2 | `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
 | 3 | `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
 | 4 | Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | JSON validation toolkit (section 3.3) with tests | Base for feature 2 |

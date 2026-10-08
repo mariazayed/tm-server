@@ -215,8 +215,25 @@ be shown before you turn it on.
 
 | Method and path | Purpose |
 |---|---|
-| `GET /api/v1/invest/ai/status` | `{configured, model, reason}`: whether the server could call a model. The key is never returned |
+| `GET /api/v1/invest/ai/status` | `{configured, model, reason}`: whether the server could call a model (switched on, key and model set). The key is never returned |
+| `GET /api/v1/invest/ai/usage` | Today's (UTC) model calls and tokens against the caps: `{date, callsToday, dailyLimit, perMinuteLimit, inputTokens, outputTokens, callsByFeature}` |
 | `GET /api/v1/invest/ai/context?includeJournal=true&includeNotes=true` | The exact text an AI feature would be given, its size, and whether it was shortened |
+
+**Switch and spending limits (AI assistant, step 1).** AI is **off by default**: set `ai.enabled=true` (and the key and
+model below) to allow any call. Every AI feature goes through one class, `AiService`, which enforces:
+
+| Property | Default | Meaning |
+|---|---|---|
+| `ai.enabled` | `false` | Master switch. Off means every AI route answers `503` and nothing leaves the server |
+| `ai.limits.daily-total` | `60` | Model calls per UTC day, all features together. Counted in `invest_ai_usage`, so a restart does not reset it |
+| `ai.limits.per-minute` | `6` | Calls in any rolling 60 seconds (in memory) |
+| `ai.limits.max-prompt-chars` | `20000` | Largest system plus user prompt; bigger is refused before anything is sent |
+
+Over a cap the API answers `429` with `Retry-After` and nothing is sent. A call is counted before it is made, so a
+failed call still counts. Failures answer `502` with a generic message: the provider's error text is never returned
+or logged, because it can echo the request. Logs hold the feature, sizes, timing and token counts only, never
+prompts or replies. Because the API has no login, these caps are the only thing limiting spend; keep the server
+on a trusted network.
 
 **The key lives on the server only.** It is the same slot the older trade-suggestion feature uses:
 `ai.provider.api-key` and `ai.provider.model` in the untracked `application-local.properties`, or the

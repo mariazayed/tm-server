@@ -64,8 +64,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
                 + "classpath:db/migration/V24__invest_reminders.sql,"
-                + "classpath:db/migration/V25__invest_embeddings.sql",
+                + "classpath:db/migration/V25__invest_embeddings.sql,"
+                + "classpath:db/migration/V26__invest_ai_usage.sql",
         "app.max-body-bytes=2048",
+        "ai.enabled=true",
         "ai.provider.api-key=sk-ant-e2e-SECRET-KEY-VALUE",
         "ai.provider.model=claude-e2e-model"
 })
@@ -86,6 +88,7 @@ class InvestEndToEndTest {
 
     @Autowired MockMvc mvc;
     @MockitoBean PriceProvider prices;
+    @MockitoBean trademind.tm_server.ai.LlmClient llm; // never called: these tests only read status and previews
 
     // Shared across the ordered steps.
     private static long contributionId;

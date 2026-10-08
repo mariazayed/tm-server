@@ -29,9 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = AiControllerTest.TestApp.class)
-@Import({AiController.class, GlobalExceptionHandler.class,
+@Import({AiController.class, AiService.class, AiControllerTest.Wiring.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
 @TestPropertySource(properties = {
+        "ai.enabled=true",
         "ai.provider.api-key=sk-ant-THIS-MUST-NEVER-LEAK",
         "ai.provider.model=claude-test-model"
 })
@@ -41,10 +42,27 @@ class AiControllerTest {
     static class TestApp {
     }
 
+    /** Real AiService with a scripted model and in-memory counts, so the HTTP mapping is tested end to end. */
+    // Deliberately not @Configuration/@TestConfiguration: InvestEndToEndTest component-scans this package.
+    @org.springframework.boot.context.properties.EnableConfigurationProperties(AiProperties.class)
+    static class Wiring {
+        @org.springframework.context.annotation.Bean
+        java.time.Clock clock() {
+            return java.time.Clock.fixed(Instant.parse("2026-10-06T12:00:00Z"), java.time.ZoneOffset.UTC);
+        }
+
+        @org.springframework.context.annotation.Bean
+        AiUsageStore usageStore() {
+            return new InMemoryAiUsageStore();
+        }
+    }
+
     private static final String SECRET = "sk-ant-THIS-MUST-NEVER-LEAK";
 
     @Autowired MockMvc mvc;
     @MockitoBean UserContextService contextService;
+    @MockitoBean trademind.tm_server.ai.LlmClient llm;
+    @Autowired AiService ai;
 
     private static UserContext context() {
         return new UserContext(Instant.parse("2026-10-06T12:00:00Z"),
@@ -67,7 +85,29 @@ class AiControllerTest {
     }
 
     @Test
+    void usageReportsTodaysCallsAgainstTheCaps() throws Exception {
+        when(llm.completeWithUsage(any(), any(), any()))
+                .thenReturn(new trademind.tm_server.ai.LlmResult("ok", 120, 30, "end_turn"));
+        ai.call(AiFeature.CHAT, "s", "u");
+        mvc.perform(get("/api/v1/invest/ai/usage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.date").value("2026-10-06"))
+                .andExpect(jsonPath("$.callsToday").value(1))
+                .andExpect(jsonPath("$.dailyLimit").value(60))
+                .andExpect(jsonPath("$.perMinuteLimit").value(6))
+                .andExpect(jsonPath("$.inputTokens").value(120))
+                .andExpect(jsonPath("$.outputTokens").value(30))
+                .andExpect(jsonPath("$.callsByFeature.CHAT").value(1));
+    }
+
+    @Test
     void statusExplainsWhatIsMissing() {
+        assertEquals(new AiController.Status(false, "m", "AI is switched off. Set ai.enabled=true on the server"),
+                AiController.status(false, "k", " m "));
+        assertEquals(new AiController.Status(false, null, "AI is switched off. Set ai.enabled=true on the server"),
+                AiController.status(false, "", ""));
+        assertEquals(new AiController.Status(true, "m", null), AiController.status(true, "k", "m"));
+
         assertEquals(new AiController.Status(false, null, "Set ai.provider.api-key and ai.provider.model on the server"),
                 AiController.status("", ""));
         assertEquals(new AiController.Status(false, null, "Set ai.provider.api-key and ai.provider.model on the server"),

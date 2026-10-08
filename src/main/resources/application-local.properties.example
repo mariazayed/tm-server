@@ -12,3 +12,5 @@ spring.datasource.password=your_password_here
 # intentionally not hardcoded here since model ids change over time).
 # ai.provider.api-key=sk-ant-...
 # ai.provider.model=
+# Master switch for the investing AI features (off by default); see application.properties for the limits.
+# ai.enabled=true

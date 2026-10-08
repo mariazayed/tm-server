@@ -62,7 +62,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
                 + "classpath:db/migration/V24__invest_reminders.sql,"
-                + "classpath:db/migration/V25__invest_embeddings.sql"
+                + "classpath:db/migration/V25__invest_embeddings.sql,"
+                + "classpath:db/migration/V26__invest_ai_usage.sql"
 })
 class UserContextServiceTest {
 

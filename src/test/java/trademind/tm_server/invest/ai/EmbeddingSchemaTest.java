@@ -42,7 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
                 + "classpath:db/migration/V24__invest_reminders.sql,"
-                + "classpath:db/migration/V25__invest_embeddings.sql"
+                + "classpath:db/migration/V25__invest_embeddings.sql,"
+                + "classpath:db/migration/V26__invest_ai_usage.sql"
 })
 class EmbeddingSchemaTest {
 
@@ -135,6 +136,7 @@ class EmbeddingSchemaTest {
         Map<String, Set<String>> columns = columnsByTable();
         assertTrue(columns.get("invest_prices").containsAll(Set.of("id", "ticker", "price_date")));
         assertTrue(columns.get("invest_reminder_log").containsAll(Set.of("id", "sent_at")));
+        assertTrue(columns.get("invest_ai_usage").containsAll(Set.of("id", "usage_date", "feature", "calls")));
         assertTrue(columns.get("invest_embeddings").containsAll(Set.of("id", "created_at", "updated_at", "content_hash")));
         assertTrue(columns.get("invest_journal_entry_tags").containsAll(Set.of("entry_id", "tag_id")));
         assertTrue(columns.get("invest_learning_note_tags").containsAll(Set.of("note_id", "tag_id")));
@@ -145,7 +147,7 @@ class EmbeddingSchemaTest {
         // A new invest_ table must be added to the lists above so it is audited too.
         assertEquals(Set.of("invest_settings", "invest_contributions", "invest_tags", "invest_journal_entries",
                 "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_prices",
-                "invest_reminder_log", "invest_embeddings", "invest_journal_entry_tags", "invest_learning_note_tags"),
+                "invest_reminder_log", "invest_embeddings", "invest_ai_usage", "invest_journal_entry_tags", "invest_learning_note_tags"),
                 columnsByTable().keySet());
     }
 

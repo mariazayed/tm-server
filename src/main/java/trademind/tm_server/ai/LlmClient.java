@@ -18,4 +18,12 @@ public interface LlmClient {
      * distinguish "the model said nothing useful" from "the call failed".
      */
     String complete(String systemPrompt, String userPrompt);
+
+    /**
+     * Like {@link #complete} but with per-call options and the provider's usage numbers. The default
+     * keeps existing implementations and test doubles working: it ignores the options and reports no usage.
+     */
+    default LlmResult completeWithUsage(String systemPrompt, String userPrompt, LlmOptions options) {
+        return new LlmResult(complete(systemPrompt, userPrompt), null, null, null);
+    }
 }
