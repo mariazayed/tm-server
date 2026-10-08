@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) 4 (chat screen), 5 (JSON toolkit) and 6 (deterministic rule checks) are built**; steps 7 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **all ten steps are built** (see the delivery table in section 11 and the "as built" notes in sections 6.3, 6.2 and 6.4). Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -280,6 +280,8 @@ Optional cache (the only server state in this plan, and not your data): `invest_
 
 **As built in step 9:** `POST /api/v1/invest/ai/tag-suggestions` as specified, with these choices where the text above was open: the response is `{suggestions: [{kind, tag, isNew, reason}]}`; tags must be one to a few words of letters, digits, spaces, `-` or `_` (at most 40 characters); the most used 50 tags are sent but `isNew` is judged against all of the owner's tags; a tag whose reason is advice is dropped; a full entry (10 tags) sends nothing; there is no exact fallback, so AI off, a limit or an upstream failure are the usual 503/429/502. The optional cache was skipped: the daily and per-minute limits already bound cost, and a repeat press should give a fresh answer. No "what will be sent" preview endpoint was added, because the sheet states what the button sends and the payload is only the draft in front of the owner. The entry sheet has a *Suggest tags* button; tapping a chip adds it to the draft's tags and nothing is stored until the entry is saved.
 
+**As built in step 10:** `AiReadOnlyProofTest` (server, real database, every AI endpoint over HTTP with a scripted model) proves three things: every `invest_*` table except `invest_ai_usage` is unchanged (row fingerprints including `updated_at`); hostile entry text cannot unbalance the wrapper in any of the four prompts and an invented handle never becomes a source; and entry text, model replies (including a rejected one on the repair path) and the key never reach the logs. On the dashboard, `invest_ai_readonly_test.dart` drives the chat, the rule check, the summary draft and the tag suggestions to their ends and asserts the only requests are reads and `POST /ai/...`. Each guard was checked by breaking the code on purpose (no escaping, logging a reply, a write inside tag suggestions, a create call inside the tag chip) and watching the right test fail.
+
 ### 6.5 Dashboard UI for feature 2
 
 - **Entry sheet** (`journal_entry_sheet.dart`): a small "Suggest tags" button next to the tag input; suggestions appear as tappable chips with the reason on long-press.
@@ -340,6 +342,17 @@ Dashboard (Flutter tests, `MockClient`): service parses all response shapes and 
 
 Manual acceptance (cheap but necessary): ten real questions of your own for the chat, five months of real entries for the summary, and one deliberately bad entry for the rule check. Record misses and tune prompts, not code.
 
+### Manual acceptance checklist (needs your real data and key)
+
+Do this once with `ai.enabled=true`, then change prompts (not code) for anything that misses. Record each result.
+
+1. **Chat, ten of your own questions.** Include: one about a specific past entry, one about a rule, one that spans months, one with no answer in your notes (it should say so), and one asking what to buy (it should refuse). Check each citation opens the right entry.
+2. **Summary, five real months.** For each, compare every number with the Facts lines (they are the app's own arithmetic), and read it for tone: neutral, no advice, no invented events. Try once with *Include my journal entries* off.
+3. **Rule check, one deliberately bad entry.** Write an entry that clearly breaks a rule (for example selling in a crash against *Never sell in a crash*), run the check with AI on, and confirm it is flagged with a real quote and rule. Then run it over a calm month and note any false flags.
+4. **Wait period.** Tag one entry `decision`, another `deviation` 24 hours later: the exact check flags it; at 73 hours it does not.
+5. **Tag suggestions.** Press *Suggest tags* on five entries; confirm it prefers your existing tags and never saves anything until you save.
+6. **Limits and off switch.** Set `ai.enabled=false`: every AI button explains why and the exact checks and monthly facts still work. Re-enable and watch `GET /ai/usage` count calls.
+
 ## 11. Delivery plan
 
 Each step is a separate commit and leaves the app working.
@@ -351,11 +364,11 @@ Each step is a separate commit and leaves the app working.
 | 3 | **Done.** `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
 | 4 | **Done.** Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | **Done.** JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
-| 6 | `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |
+| 6 | **Done.** `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |
 | 7 | **Done.** Model layer for `/rule-check` + review screen | Feature 2b |
-| 8 | `/checkin-summary` + facts block + number check + UI | Feature 2a |
-| 9 | `/tag-suggestions` + entry sheet button | Feature 2c |
-| 10 | Docs update (`INVESTMENT_TRACKER.md`), guardrail tests refreshed, manual acceptance pass | Done |
+| 8 | **Done.** `/checkin-summary` + facts block + number check + UI | Feature 2a |
+| 9 | **Done.** `/tag-suggestions` + entry sheet button | Feature 2c |
+| 10 | **Done** (except the manual pass, which needs your real data). Docs update (`INVESTMENT_TRACKER.md`), guardrail tests, read-only proof | Done |
 
 Rough effort: steps 1 to 4 about 4 to 5 working days; steps 5 to 9 about 5 to 6 working days; step 10 about 1 day.
 

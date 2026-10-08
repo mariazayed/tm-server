@@ -210,9 +210,33 @@ Push notifications are not implemented: the Flutter client has no push service b
 
 ## AI foundations (Phase 9)
 
-No AI feature is switched on yet. This is the groundwork, so the first one (a chat over your own notes,
-a monthly summary) can be built without redesigning anything, and so you can see exactly what it would
-be shown before you turn it on.
+The AI assistant is built, **off by default**, and only ever suggests: it reads your rules, journal and notes and never
+edits them. Nothing leaves the server until you set `ai.enabled=true` and a key and model, and every feature that sends your
+text is a button you press (or a switch you turn on), with a preview of the exact prompt where the text is long.
+
+| Feature | Where in the app | Endpoint | Sends your text to the provider? |
+|---|---|---|---|
+| Ask your journal | Chat (`/invest/ask`) | `POST /ai/chat` | Yes, the question and the entries found for it |
+| Consistency check, exact | Rules page card, Review | `POST /ai/rule-check` | No (plain code, works with AI off) |
+| Consistency check, AI reading | Review, switch | `POST /ai/rule-check` with `includeModel` | Yes, rules and up to 40 entries |
+| Monthly facts | Review > Summary | `POST /ai/checkin-summary` | No |
+| Monthly summary draft | Review > Summary, button | `POST /ai/checkin-summary` with `includeModel` | Yes, the facts and up to 20 entries (optional) |
+| Tag suggestions | Entry sheet, button | `POST /ai/tag-suggestions` | Yes, the draft and your tag names |
+
+**Guardrails that apply to all of them** (each has a test; `AiReadOnlyProofTest` proves the first three end to end):
+
+- **Read-only.** After every AI endpoint has been called, every `invest_*` table except the usage counters is byte-for-byte
+  unchanged. The dashboard's AI screens only read, or `POST` to `/ai/...`, until you save an entry yourself.
+- **Hostile text stays data.** Everything you wrote is wrapped, escaped and flattened, so an entry cannot close its wrapper, add a
+  heading or pose as an instruction, and a handle it invents (`[J999]`) never comes back as a source.
+- **No secrets or text in logs.** Entry text, model replies (including rejected ones) and the key never reach the log output.
+- **Model output is checked, not trusted.** Ids and quotes must be real, numbers must be in the facts, advice is removed or the
+  item dropped, JSON must have the exact shape (one repeat, then a clear failure).
+- **Spending is capped** (daily and per-minute), a failed call still counts, and `GET /ai/usage` shows the total.
+- **It degrades, it does not break.** Where there is an exact result (rule check, monthly facts) it is returned even when the AI
+  part cannot run, with the reason.
+
+The rest of this section describes each piece.
 
 | Method and path | Purpose |
 |---|---|
@@ -304,7 +328,7 @@ switches default to true. Bad input answers `400`. Response:
 suggestions, check-in summary) ask the model for JSON and read it only through `ModelJson` / `AiJsonService`: one JSON object
 in the requested shape, otherwise one repeat with the reason, otherwise `502` ("The AI answered in a form that could not be
 used"). Ids the model returns are checked against the ids it was shown, and quotes against your actual text, before anything
-reaches the app. No endpoint uses this yet. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
+reaches the app. The rule check, the summary and the tag suggestions use it. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
 
 **Consistency checks (`POST /api/v1/invest/ai/rule-check`).** Checks a date range against your own rules. The **exact checks**
 are plain code: no model, nothing sent anywhere, and they work with `ai.enabled` off. Request
