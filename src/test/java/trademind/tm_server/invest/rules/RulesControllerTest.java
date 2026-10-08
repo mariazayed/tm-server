@@ -54,7 +54,7 @@ class RulesControllerTest {
 
     private static InvestSettingsResponse settingsResponse() {
         return new InvestSettingsResponse(30000, "USD", 5, "VT", LocalDate.parse("2026-08-01"), "Europe/Berlin",
-                true, "me@example.com", 3);
+                true, "me@example.com", 3, 72);
     }
 
     @Test

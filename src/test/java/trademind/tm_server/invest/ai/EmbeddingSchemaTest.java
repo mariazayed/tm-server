@@ -45,7 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V24__invest_reminders.sql,"
                 + "classpath:db/migration/V25__invest_embeddings.sql,"
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
-                + "classpath:db/migration/V27__invest_fulltext_search.sql"
+                + "classpath:db/migration/V27__invest_fulltext_search.sql,"
+                + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
+                + "classpath:db/migration/V29__invest_settings_changes.sql"
 })
 class EmbeddingSchemaTest {
 
@@ -124,7 +126,7 @@ class EmbeddingSchemaTest {
     void everyUserDataTableHasAnIdAndFullAuditColumns() {
         Map<String, Set<String>> columns = columnsByTable();
         for (String table : List.of("invest_settings", "invest_contributions", "invest_tags", "invest_journal_entries",
-                "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards")) {
+                "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_settings_changes")) {
             Set<String> cols = columns.get(table);
             assertNotNull(cols, table + " is missing");
             for (String required : List.of("id", "created_at", "updated_at", "deleted_at", "notes")) {
@@ -149,7 +151,8 @@ class EmbeddingSchemaTest {
         // A new invest_ table must be added to the lists above so it is audited too.
         assertEquals(Set.of("invest_settings", "invest_contributions", "invest_tags", "invest_journal_entries",
                 "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_prices",
-                "invest_reminder_log", "invest_embeddings", "invest_ai_usage", "invest_journal_entry_tags", "invest_learning_note_tags"),
+                "invest_reminder_log", "invest_embeddings", "invest_ai_usage", "invest_settings_changes", "invest_journal_entry_tags",
+                "invest_learning_note_tags"),
                 columnsByTable().keySet());
     }
 

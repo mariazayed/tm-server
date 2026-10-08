@@ -54,10 +54,10 @@ class BackupServiceTest {
     private static ExportData sample(String note) {
         return new ExportData(ExportData.SCHEMA_VERSION, Instant.parse("2026-10-06T02:30:00Z"),
                 new ExportData.Settings(30000, "USD", 1, "VT", LocalDate.parse("2026-08-01"), "UTC", true,
-                        "me@example.com", 3),
+                        "me@example.com", 3, 72),
                 List.of(new ExportData.Contribution(1L, LocalDate.parse("2026-10-01"), 30000, new BigDecimal("2.55489022"),
                         new BigDecimal("117.4250"), 0, note, LocalDateTime.parse("2026-10-01T09:00:00"))),
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     private static BackupService service(Path dir, int keep, MovableClock clock, ExportData data) {

@@ -13,11 +13,12 @@ public record InvestSettingsResponse(
         String timezone,
         boolean remindersEnabled,
         String reminderEmail,
-        int reminderFollowupDays) {
+        int reminderFollowupDays,
+        int ruleWaitHours) {
 
     public static InvestSettingsResponse from(InvestSettings s) {
         return new InvestSettingsResponse(s.getMonthlyAmountCents(), s.getCurrency(), s.getBuyDay(),
                 s.getTicker(), s.getStartDate(), s.getTimezone(), s.isRemindersEnabled(),
-                s.getReminderEmail(), s.getReminderFollowupDays());
+                s.getReminderEmail(), s.getReminderFollowupDays(), s.getRuleWaitHours());
     }
 }

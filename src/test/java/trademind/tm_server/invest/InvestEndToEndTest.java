@@ -31,6 +31,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -67,7 +68,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 + "classpath:db/migration/V24__invest_reminders.sql,"
                 + "classpath:db/migration/V25__invest_embeddings.sql,"
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
-                + "classpath:db/migration/V27__invest_fulltext_search.sql",
+                + "classpath:db/migration/V27__invest_fulltext_search.sql,"
+                + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
+                + "classpath:db/migration/V29__invest_settings_changes.sql",
         "app.max-body-bytes=2048",
         "ai.enabled=true",
         "ai.provider.api-key=sk-ant-e2e-SECRET-KEY-VALUE",
@@ -346,5 +349,55 @@ class InvestEndToEndTest {
                 body(mvc.perform(get("/api/v1/invest/settings")).andReturn())}) {
             assertTrue(!text.contains("sk-ant-e2e-SECRET-KEY-VALUE"));
         }
+    }
+
+    @Test
+    @Order(15)
+    void theConsistencyChecksRunOverHttpAndThePlanHistoryIsExported() throws Exception {
+        // Changing the monthly amount leaves a history row, which the export carries (saving the same plan writes none).
+        String raise = """
+                {"monthlyAmountCents":35000,"currency":"USD","buyDay":1,"ticker":"VT","startDate":"%s",
+                 "timezone":"UTC","remindersEnabled":false,"reminderFollowupDays":3}""";
+        mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON)
+                        .content(raise.formatted(TODAY.minusMonths(2).withDayOfMonth(1))))
+                .andExpect(status().isOk());
+        MvcResult export = mvc.perform(get("/api/v1/invest/export")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.settings.ruleWaitHours").value(72))
+                .andReturn();
+        List<?> changes = JsonPath.read(body(export), "$.settingsChanges");
+        assertEquals(1, changes.size(), "only the amount changed");
+        assertEquals("MONTHLY_AMOUNT", JsonPath.read(body(export), "$.settingsChanges[0].field"));
+        assertEquals("30000", JsonPath.read(body(export), "$.settingsChanges[0].oldValue"));
+        assertEquals("35000", JsonPath.read(body(export), "$.settingsChanges[0].newValue"));
+
+        // The checks need no model: they work here without any call to it.
+        String from = TODAY.minusDays(30).toString();
+        mvc.perform(post("/api/v1/invest/ai/rule-check").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + from + "\",\"to\":\"" + TODAY + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.waitHours").value(72))
+                .andExpect(jsonPath("$.checks.length()").value(3))
+                .andExpect(jsonPath("$.checks[0].code").value("WAIT_PERIOD"))
+                .andExpect(jsonPath("$.checks[0].status").value("RAN"))
+                .andExpect(jsonPath("$.findings").isArray());
+        mvc.perform(post("/api/v1/invest/ai/rule-check").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + TODAY + "\",\"to\":\"" + TODAY.minusDays(1) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        // The wait is a setting: 0 turns the wait-period check off, and the change is visible in the response.
+        String plan = """
+                {"monthlyAmountCents":30000,"currency":"USD","buyDay":1,"ticker":"VT","startDate":"%s",
+                 "timezone":"UTC","remindersEnabled":false,"reminderFollowupDays":3,"ruleWaitHours":0}""";
+        mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON)
+                        .content(plan.formatted(TODAY.minusMonths(2).withDayOfMonth(1))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ruleWaitHours").value(0));
+        mvc.perform(post("/api/v1/invest/ai/rule-check").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + from + "\",\"to\":\"" + TODAY + "\"}"))
+                .andExpect(jsonPath("$.checks[0].status").value("OFF"));
+        mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON)
+                        .content(plan.replace("\"ruleWaitHours\":0", "\"ruleWaitHours\":721")
+                                .formatted(TODAY.minusMonths(2).withDayOfMonth(1))))
+                .andExpect(status().isBadRequest());
     }
 }

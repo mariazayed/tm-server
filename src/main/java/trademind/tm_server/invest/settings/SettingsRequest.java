@@ -17,6 +17,8 @@ import java.time.LocalDate;
  * @param buyDay            1-28, so every month has it
  * @param reminderEmail     required when reminders are on
  * @param reminderFollowupDays days after the buy day to nudge again
+ * @param ruleWaitHours     hours to wait before a deviation, 0-720 (0 turns the wait-period check off);
+ *                          left out means keep the current value
  */
 public record SettingsRequest(
         @NotNull @Positive @Max(100_000_000_00L) Long monthlyAmountCents,
@@ -27,5 +29,13 @@ public record SettingsRequest(
         @NotBlank @Size(max = 64) String timezone,
         boolean remindersEnabled,
         @Email @Size(max = 254) String reminderEmail,
-        @NotNull @Min(1) @Max(14) Integer reminderFollowupDays) {
+        @NotNull @Min(1) @Max(14) Integer reminderFollowupDays,
+        @Min(0) @Max(720) Integer ruleWaitHours) {
+
+    /** The request as clients sent it before {@code ruleWaitHours} existed: the current value is kept. */
+    public SettingsRequest(Long monthlyAmountCents, String currency, Integer buyDay, String ticker, LocalDate startDate,
+                           String timezone, boolean remindersEnabled, String reminderEmail, Integer reminderFollowupDays) {
+        this(monthlyAmountCents, currency, buyDay, ticker, startDate, timezone, remindersEnabled, reminderEmail,
+                reminderFollowupDays, null);
+    }
 }

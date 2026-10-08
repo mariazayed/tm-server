@@ -14,6 +14,7 @@ import trademind.tm_server.invest.repository.LearningNoteRepository;
 import trademind.tm_server.invest.repository.LearningSourceRepository;
 import trademind.tm_server.invest.repository.PriceQuoteRepository;
 import trademind.tm_server.invest.repository.ReminderLogRepository;
+import trademind.tm_server.invest.repository.SettingsChangeRepository;
 import trademind.tm_server.invest.repository.RuleRepository;
 
 import java.time.Clock;
@@ -36,12 +37,14 @@ public class ExportService {
     private final LearningNoteRepository notes;
     private final FlashcardRepository flashcards;
     private final ReminderLogRepository reminders;
+    private final SettingsChangeRepository settingsChanges;
     private final Clock clock;
 
     public ExportService(InvestSettingsRepository settings, ContributionRepository contributions,
                          PriceQuoteRepository prices, InvestTagRepository tags, JournalEntryRepository journal,
                          RuleRepository rules, LearningSourceRepository sources, LearningNoteRepository notes,
-                         FlashcardRepository flashcards, ReminderLogRepository reminders, Clock clock) {
+                         FlashcardRepository flashcards, ReminderLogRepository reminders,
+                         SettingsChangeRepository settingsChanges, Clock clock) {
         this.settings = settings;
         this.contributions = contributions;
         this.prices = prices;
@@ -52,6 +55,7 @@ public class ExportService {
         this.notes = notes;
         this.flashcards = flashcards;
         this.reminders = reminders;
+        this.settingsChanges = settingsChanges;
         this.clock = clock;
     }
 
@@ -63,7 +67,7 @@ public class ExportService {
                 clock.instant(),
                 new ExportData.Settings(s.getMonthlyAmountCents(), s.getCurrency(), s.getBuyDay(), s.getTicker(),
                         s.getStartDate(), s.getTimezone(), s.isRemindersEnabled(), s.getReminderEmail(),
-                        s.getReminderFollowupDays()),
+                        s.getReminderFollowupDays(), s.getRuleWaitHours()),
                 contributions.findByDeletedAtIsNullOrderByContributedOnDesc().stream()
                         .sorted(Comparator.comparing(trademind.tm_server.invest.Contribution::getContributedOn)
                                 .thenComparing(trademind.tm_server.invest.Contribution::getId))
@@ -97,7 +101,10 @@ public class ExportService {
                                 c.getLastReviewedOn())).toList(),
                 reminders.findAll().stream()
                         .sorted(Comparator.comparing(trademind.tm_server.invest.reminder.ReminderLog::getSentAt))
-                        .map(r -> new ExportData.Reminder(r.getMonth(), r.getKind().name(), r.getSentAt())).toList());
+                        .map(r -> new ExportData.Reminder(r.getMonth(), r.getKind().name(), r.getSentAt())).toList(),
+                settingsChanges.findByDeletedAtIsNullOrderByCreatedAtAscIdAsc().stream()
+                        .map(c -> new ExportData.SettingsChange(c.getFieldName(), c.getOldValue(), c.getNewValue(),
+                                c.getCreatedAt())).toList());
     }
 
     private static List<String> tagNames(java.util.Set<InvestTag> tags) {

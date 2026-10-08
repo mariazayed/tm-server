@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) 4 (chat screen) and 5 (JSON toolkit) are built**; steps 6 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) 4 (chat screen), 5 (JSON toolkit) and 6 (deterministic rule checks) are built**; steps 7 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -254,6 +254,8 @@ Deterministic findings are always `HIGH`. Model findings below `MEDIUM` are hidd
 
 Request: `{ "from": "2026-09-01", "to": "2026-09-30" }` (max 92 days, max 40 entries per call; larger ranges are chunked client-side).
 
+**As built in step 6 (layer 1 only):** `POST /api/v1/invest/ai/rule-check` runs the three deterministic checks and works with `ai.enabled` off. The exact definitions chosen where the text above was open (the 14-day look-back for a decision, the earliest decision starting the clock, any entry counting as the note, the 7-day grace for a missed month, `ruleId` always null for deterministic findings, the extra `checks` list saying what ran) are in `docs/INVESTMENT_TRACKER.md`. The model layer and the 40-entry cap arrive in step 7.
+
 Apply: none. A finding can offer **Add a reflection**, which opens the entry sheet pre-filled with a *reflection* template ("I noticed ... the rule says ... what I'll do next time:") for you to write. Findings are never stored, and the server never marks an entry.
 
 ### 6.4 Feature 2c: Tag suggestions
@@ -286,8 +288,8 @@ Optional cache (the only server state in this plan, and not your data): `invest_
 |---|---|---|
 | `V26__invest_ai_usage.sql` | **Done (step 1).** Per-day call and token counts so the daily cap survives a restart. Not owner data; excluded from the nightly dump | Step 1 |
 | `V27__invest_fulltext_search.sql` | **Done (step 2).** Generated `search_vector` columns and GIN indexes on journal entry bodies and learning notes (note titles weighted above bodies) | Feature 1 |
-| `V28__invest_rule_wait_hours.sql` | `invest_settings.rule_wait_hours integer not null default 72 check (rule_wait_hours between 0 and 720)` | 2b |
-| `V29__invest_settings_changes.sql` | audit table for plan changes (old and new values, `changed_at`); same `id/created_at/updated_at/deleted_at/notes` columns as other tables so `EmbeddingSchemaTest` passes | 2b |
+| `V28__invest_rule_wait_hours.sql` | **Done (step 6).** `invest_settings.rule_wait_hours integer not null default 72 check (rule_wait_hours between 0 and 720)` | 2b |
+| `V29__invest_settings_changes.sql` | **Done (step 6).** audit table for plan changes (old and new values; `created_at` is when it changed); same `id/created_at/updated_at/deleted_at/notes` columns as other tables so `EmbeddingSchemaTest` passes | 2b |
 | `V30__invest_ai_cache.sql` *(optional)* | response cache described in 6.4 | 2c, 2a |
 
 Also: add each new table to `InvestSchemaTest` and `invest-schema-reset.sql`, and to `ExportService` only if it holds user data (the settings audit does; the cache does not and must be excluded from export and backups).

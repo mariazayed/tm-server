@@ -37,6 +37,7 @@ stored as integer cents; share counts and per-share prices are exact decimals. T
 | `invest_learning_note_tags` | Note-to-tag link | `note_id`, `tag_id` |
 | `invest_embeddings` | Unused groundwork for AI search (V25) | `source_type`, `source_id`, `model`, `vector`, `content_hash` |
 | `invest_reminder_log` | One row per reminder sent (V24), unique per month and kind | `month`, `kind`, `sent_at` |
+| `invest_settings_changes` | History of plan changes (V29): one row per changed field, written when the plan is saved with a different amount, ticker or buy day. The settings row itself is overwritten, so this is the only record of an old value | `field_name`, `old_value`, `new_value`, `created_at` |
 | `invest_flashcards` | Spaced-repetition cards (V23) | `front`, `back`, optional `note_id`, `due_on`, `interval_days`, `ease`, `repetitions`, `lapses` |
 
 The migration seeds the settings row ($300, USD, VT, buy day 1), the tags `emotion`, `learning`,
@@ -172,7 +173,7 @@ resets the card to due tomorrow, leaves ease alone and counts a lapse (unless th
 | `POST /api/v1/invest/rules` | Add a rule at the end (text up to 500 characters, at most 20 rules) |
 | `PUT /api/v1/invest/rules/{id}`, `DELETE /api/v1/invest/rules/{id}` | Edit or delete |
 | `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
-| `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders) |
+| `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders, and optionally `ruleWaitHours`: the wait before a deviation, 0-720, left out keeps the current value) |
 | `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |
 | `POST /api/v1/invest/reminders/test` | Send a test message now; a delivery problem is reported in the body, not as an HTTP error |
 
@@ -304,6 +305,22 @@ suggestions, check-in summary) ask the model for JSON and read it only through `
 in the requested shape, otherwise one repeat with the reason, otherwise `502` ("The AI answered in a form that could not be
 used"). Ids the model returns are checked against the ids it was shown, and quotes against your actual text, before anything
 reaches the app. No endpoint uses this yet. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
+
+**Consistency checks (`POST /api/v1/invest/ai/rule-check`).** Checks a date range against your own rules with plain code:
+no model, nothing sent anywhere, and it works with `ai.enabled` off. Request `{"from": "2026-09-17", "to": "2026-10-16"}`
+(at most 92 days, otherwise `400`). Response `{from, to, waitHours, findings, checks}`; `checks` lists each check with
+`RAN` or `OFF` and the reason it is off. A finding is `{check, source: "DETERMINISTIC", date, message, entryIds, ruleId: null,
+quote: null, confidence: "HIGH"}`, newest first. Findings are computed on request and never stored, and nothing marks an entry.
+A finding is a prompt to look, not a verdict. Rule text is free text and is never parsed, so the checks use these conventions:
+
+| Check | Finding when | How it works |
+|---|---|---|
+| `WAIT_PERIOD` | A `deviation` entry has no `decision` entry before it, or too little time after it | Tag an entry `decision` when you decide to deviate from the plan and `deviation` when you act. For each deviation entry in the range, the **earliest** `decision` entry in the 14 days before it starts the clock (an older decision is treated as unrelated, and an entry tagged both counts as a deviation). The gap must be at least the wait. The wait is the setting `ruleWaitHours` (default 72; **0 switches the check off**) |
+| `PLAN_CHANGE` | The monthly amount, ticker or buy day was changed with no journal entry of any kind in the 7 days before | Uses `invest_settings_changes`. Fields saved together are one finding. Deliberately lenient: any entry counts, because the check cannot tell whether the entry is the reason |
+| `MISSED_MONTH` | A month with no purchase has no journal entry written in that month or the 7 days after it | Reported only once those 7 days have passed, so you are not told off while there is still time to write the note |
+
+Plan changes made before this feature existed have no history, so `PLAN_CHANGE` can only see changes from now on.
+The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never

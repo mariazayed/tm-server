@@ -51,7 +51,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V24__invest_reminders.sql,"
                 + "classpath:db/migration/V25__invest_embeddings.sql,"
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
-                + "classpath:db/migration/V27__invest_fulltext_search.sql"
+                + "classpath:db/migration/V27__invest_fulltext_search.sql,"
+                + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
+                + "classpath:db/migration/V29__invest_settings_changes.sql"
 })
 class ContributionServiceTest {
 
