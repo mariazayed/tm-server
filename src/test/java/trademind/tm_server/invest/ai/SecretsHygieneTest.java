@@ -73,8 +73,6 @@ class SecretsHygieneTest {
                 if (t.startsWith("#") || t.isEmpty()) continue;
                 assertTrue(!t.startsWith("ai.provider.api-key") || t.matches("ai\\.provider\\.api-key\\s*=\\s*"),
                         file + " sets the API key: " + t);
-                assertTrue(!t.startsWith("app.auth.password-hash") && !t.startsWith("app.auth.session-secret"),
-                        file + " sets an auth secret: " + t);
             }
         }
     }

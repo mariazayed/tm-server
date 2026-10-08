@@ -7,11 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import trademind.tm_server.auth.SecurityConfig;
-import trademind.tm_server.auth.TokenService;
 import trademind.tm_server.exceptions.GlobalExceptionHandler;
 import trademind.tm_server.invest.InvestExceptionHandler;
 import trademind.tm_server.invest.dto.InvestSettingsResponse;
@@ -29,7 +26,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,9 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = RulesControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, RulesController.class, GlobalExceptionHandler.class,
+@Import({RulesController.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
-@TestPropertySource(properties = "app.auth.session-secret=0123456789abcdef0123456789abcdef-test")
 class RulesControllerTest {
 
     @org.springframework.boot.SpringBootConfiguration
@@ -63,51 +58,37 @@ class RulesControllerTest {
     }
 
     @Test
-    void everyRouteRequiresLogin() throws Exception {
-        mvc.perform(get("/api/v1/invest/rules")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/invest/rules").contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"x\"}"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/v1/invest/rules/order").contentType(MediaType.APPLICATION_JSON).content("{\"ids\":[1]}"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/v1/invest/rules/1")).andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON).content(VALID_SETTINGS))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/reminders")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/invest/reminders/test")).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void rulesCrudAndOrder() throws Exception {
         when(rules.list()).thenReturn(List.of(new RulesService.RuleResponse(1L, "Never sell in a crash.", 1)));
-        mvc.perform(get("/api/v1/invest/rules").with(jwt()))
+        mvc.perform(get("/api/v1/invest/rules"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].text").value("Never sell in a crash."))
                 .andExpect(jsonPath("$[0].position").value(1));
 
         when(rules.create(any())).thenReturn(new RulesService.RuleResponse(2L, "Stay boring.", 2));
-        mvc.perform(post("/api/v1/invest/rules").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/invest/rules").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"text\":\"Stay boring.\"}"))
                 .andExpect(status().isCreated());
 
         // "order" must not be mistaken for a rule id.
         when(rules.reorder(any())).thenReturn(List.of());
-        mvc.perform(put("/api/v1/invest/rules/order").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/v1/invest/rules/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"ids\":[2,1]}")).andExpect(status().isOk());
         ArgumentCaptor<RulesService.OrderRequest> order = ArgumentCaptor.forClass(RulesService.OrderRequest.class);
         verify(rules).reorder(order.capture());
         assertEquals(List.of(2L, 1L), order.getValue().ids());
 
-        mvc.perform(delete("/api/v1/invest/rules/2").with(jwt())).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/invest/rules/2")).andExpect(status().isNoContent());
         verify(rules).delete(2L);
     }
 
     @Test
     void invalidRuleInputNeverReachesTheService() throws Exception {
         for (String body : new String[] {"{\"text\":\"   \"}", "{}", "{\"text\":\"%s\"}".formatted("x".repeat(501))}) {
-            mvc.perform(post("/api/v1/invest/rules").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/api/v1/invest/rules").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
-        mvc.perform(put("/api/v1/invest/rules/order").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/v1/invest/rules/order").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"ids\":[]}")).andExpect(status().isBadRequest());
         verify(rules, never()).create(any());
         verify(rules, never()).reorder(any());
@@ -116,7 +97,7 @@ class RulesControllerTest {
     @Test
     void settingsAreUpdatedThroughTheService() throws Exception {
         when(settings.update(any())).thenReturn(settingsResponse());
-        mvc.perform(put("/api/v1/invest/settings").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(VALID_SETTINGS))
+        mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON).content(VALID_SETTINGS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.remindersEnabled").value(true))
@@ -140,7 +121,7 @@ class RulesControllerTest {
                 VALID_SETTINGS.replace("\"timezone\":\"Europe/Berlin\",", ""),
         };
         for (String body : bad) {
-            mvc.perform(put("/api/v1/invest/settings").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(put("/api/v1/invest/settings").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
         verify(settings, never()).update(any());
@@ -150,13 +131,13 @@ class RulesControllerTest {
     void reminderStatusAndTestSend() throws Exception {
         when(reminders.status()).thenReturn(new ReminderService.Status(true,
                 List.of(new ReminderService.Status.Sent("2026-10", ReminderKind.DUE, LocalDateTime.parse("2026-10-05T09:00:00")))));
-        mvc.perform(get("/api/v1/invest/reminders").with(jwt()))
+        mvc.perform(get("/api/v1/invest/reminders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.emailConfigured").value(true))
                 .andExpect(jsonPath("$.recent[0].kind").value("DUE"));
 
         when(reminders.sendTest()).thenReturn(new ReminderService.RunResult(false, null, null, "SMTP down"));
-        mvc.perform(post("/api/v1/invest/reminders/test").with(jwt()))
+        mvc.perform(post("/api/v1/invest/reminders/test"))
                 .andExpect(status().isOk()) // failure is in the body, not an HTTP error
                 .andExpect(jsonPath("$.sent").value(false))
                 .andExpect(jsonPath("$.error").value("SMTP down"));

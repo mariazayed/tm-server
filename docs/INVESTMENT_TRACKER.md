@@ -14,31 +14,8 @@ Personal tracker for a simple plan. This file is the source of truth for the str
 
 ## Auth
 
-Single owner. `POST /api/v1/auth/login` checks the password against a BCrypt hash and returns a
-signed HS256 token (`Authorization: Bearer <token>`). Protected routes:
-
-- `GET /api/v1/auth/me`
-- everything under `/api/v1/invest/**` (all future tracker endpoints go here)
-
-The existing trade-journal endpoints are unchanged and remain open. Login is rate limited to 5
-attempts per 15 minutes per client address (in memory, single instance). If the settings below are
-missing, login returns 503 and the protected routes stay closed.
-
-### Configuration
-
-| Property (env var)                                    | Meaning                                  |
-| ----------------------------------------------------- | ---------------------------------------- |
-| `app.auth.password-hash` (`APP_AUTH_PASSWORD_HASH`)   | BCrypt hash of your password             |
-| `app.auth.session-secret` (`APP_AUTH_SESSION_SECRET`) | 32+ byte random signing secret           |
-| `app.auth.session-days` (`APP_AUTH_SESSION_DAYS`)     | Token lifetime, 1-90 days (default 14)   |
-
-Generate them (never commit real values; use `application-local.properties` or env vars):
-
-```bash
-python3 -c 'import bcrypt,getpass;print(bcrypt.hashpw(getpass.getpass().encode(),bcrypt.gensalt(12)).decode())'
-# or: htpasswd -bnBC 12 "" 'your long password' | tr -d ':\n'
-openssl rand -base64 48
-```
+There is no authentication. Every route, including everything under `/api/v1/invest/**`, is open to anyone who
+can reach the server, so keep it on a trusted network.
 
 ## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`, `V24__invest_reminders.sql`, `V25__invest_embeddings.sql`)
 
@@ -81,7 +58,7 @@ INVEST_TEST_DB_URL=jdbc:postgresql://localhost:5432/scratch INVEST_TEST_DB_USER=
   mvn test -Dtest=InvestSchemaTest
 ```
 
-## Contribution API (all routes need the login token)
+## Contribution API
 
 | Method and path | Purpose |
 |---|---|
@@ -132,7 +109,7 @@ old, and `priceFromCache` is false when no closes exist yet and your last buy pr
 The series has one point per trading day from your first buy (cumulative invested and value); before
 any prices exist it has one point per buy, valued at the price you paid.
 
-## Journal API (all routes need the login token)
+## Journal API
 
 | Method and path | Purpose |
 |---|---|
@@ -159,7 +136,7 @@ none). `contributionId` is this month's latest buy so the entry can link to it.
 
 Unreadable request bodies (bad JSON, unknown enum values) on the invest routes answer `400`.
 
-## Learning API (all routes need the login token)
+## Learning API
 
 Everything is under `/api/v1/invest/learning`.
 
@@ -187,7 +164,7 @@ days. Ease changes by +0.10 (Easy), 0 (Good) or -0.14 (Hard) and never goes belo
 resets the card to due tomorrow, leaves ease alone and counts a lapse (unless the card was new).
 "Today" is the settings timezone. Editing a card's text never touches its schedule.
 
-## Rules, settings and reminders (all routes need the login token)
+## Rules, settings and reminders
 
 | Method and path | Purpose |
 |---|---|
@@ -310,47 +287,17 @@ survive losing the disk.
 
 ## Security notes
 
-**How access works.** One owner. `POST /api/v1/auth/login` checks a BCrypt hash and returns an HS256
-token valid for `app.auth.session-days`. Everything under `/api/v1/invest/**` and `GET /api/v1/auth/me`
-needs it; there is no cookie, so there is nothing to forge across sites (no CSRF surface). HTTPS in
-front of the app is required, otherwise the token travels in the clear.
-
-**Checked in the Phase 8 pass, and what changed:**
-
-| Check | Result |
-|---|---|
-| Every invest route needs a token | Verified route by route, and `ProtectedRoutesInventoryTest` fails the build if any invest controller is mounted outside `/api/v1/invest`, since that prefix is the only protected one |
-| Login brute force | 5 attempts per 15 minutes per client address. **Fixed:** the table of tracked addresses was unbounded, so a flood from many addresses could grow memory; it is now capped (new addresses beyond 10,000 share one bucket) |
-| Large request bodies | **Fixed:** `@RequestBody String` read any size into memory. Bodies on invest and login routes are capped at `app.max-body-bytes` (2 MiB); too large gets `413`, including chunked uploads that never declare a length |
-| Absurd numbers | **Fixed:** amounts, fees, shares and prices had no upper bounds, so a huge value would hit a database overflow (500) or overflow a sum. They are bounded in the API and again for CSV rows; extra decimals are rounded to what the database stores (price 4, shares 8) |
-| Malformed JSON | **Fixed earlier (Phase 5):** answers `400`, not `500` |
-| Deleted data leaking | **Fixed:** a journal entry kept exposing the id of a buy that had been deleted, in the API and the export |
-| Error messages | Generic bodies; no stack traces or parser details |
-| Secrets | Hash, signing secret, SMTP credentials and the API are configured by environment or untracked files; backups and dumps are owner-only |
-
-**Known limits, not fixed:**
-
-- **The existing trade-journal endpoints are still open.** Only the investing tracker is protected, so
-  the dashboard and the importer keep working. Protecting everything is the biggest remaining step; it
-  needs the Flutter dashboard to force login everywhere and `tm-py-server` to send a token.
-- **Tokens cannot be revoked one by one.** Logging out only forgets the token on the device. To sign
-  every device out, change `app.auth.session-secret` and restart.
-- **Rate limiting uses the connection address.** Behind a reverse proxy every request looks like the
-  proxy, so five failed attempts from anyone lock everybody out of new logins for 15 minutes (tokens
-  already issued keep working). If your proxy is trusted, set `server.forward-headers-strategy=framework`
-  so the real client address is used; never set it when the app is directly reachable, because the
-  header can then be spoofed.
-- The limiter is in memory, single instance, and resets on restart.
-- No second factor, and a single shared password.
-- Swagger UI and `/v3/api-docs` come from the existing app and are public; they describe the API but
-  expose no data.
-- Dependencies were not scanned for known vulnerabilities (no scanner available in the build sandbox).
+The server has no authentication, login or tokens. Do not expose it to an untrusted network. Request bodies
+on invest routes are capped at `app.max-body-bytes` (2 MiB); too large gets `413`. Amounts, fees, shares and
+prices are bounded in the API and for CSV rows. Malformed JSON answers `400`. Error bodies are generic.
+SMTP credentials and the AI API key are configured by environment or untracked files; backups and dumps
+are owner-only. Swagger UI and `/v3/api-docs` are public.
 
 ## Deployment
 
 Any host that runs Java 17 and PostgreSQL. Terminate HTTPS in front of the app (Caddy, nginx or a
-cloud load balancer); bearer tokens must never travel over plain HTTP. Set the two secrets in the
-host's secret store.
+cloud load balancer), and keep the server on a trusted network since it has no login. Put SMTP and AI
+credentials in the host's secret store.
 
 ## CI
 

@@ -9,8 +9,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import trademind.tm_server.auth.SecurityConfig;
-import trademind.tm_server.auth.TokenService;
 import trademind.tm_server.exceptions.GlobalExceptionHandler;
 import trademind.tm_server.invest.InvestExceptionHandler;
 
@@ -25,17 +23,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest
 @ContextConfiguration(classes = AiControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, AiController.class, GlobalExceptionHandler.class,
+@Import({AiController.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
 @TestPropertySource(properties = {
-        "app.auth.session-secret=0123456789abcdef0123456789abcdef-test",
         "ai.provider.api-key=sk-ant-THIS-MUST-NEVER-LEAK",
         "ai.provider.model=claude-test-model"
 })
@@ -60,14 +56,8 @@ class AiControllerTest {
     }
 
     @Test
-    void bothRoutesRequireLogin() throws Exception {
-        mvc.perform(get("/api/v1/invest/ai/status")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/ai/context")).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void statusSaysConfiguredAndNamesTheModelButNeverTheKey() throws Exception {
-        MvcResult result = mvc.perform(get("/api/v1/invest/ai/status").with(jwt()))
+        MvcResult result = mvc.perform(get("/api/v1/invest/ai/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.configured").value(true))
                 .andExpect(jsonPath("$.model").value("claude-test-model"))
@@ -92,7 +82,7 @@ class AiControllerTest {
     @Test
     void contextPreviewShowsExactlyTheTextAndItsSize() throws Exception {
         when(contextService.build(any())).thenReturn(context());
-        MvcResult result = mvc.perform(get("/api/v1/invest/ai/context").with(jwt()))
+        MvcResult result = mvc.perform(get("/api/v1/invest/ai/context"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.includeJournal").value(true))
                 .andExpect(jsonPath("$.includeNotes").value(true))
@@ -106,7 +96,7 @@ class AiControllerTest {
     @Test
     void thePrivacyTogglesReachTheService() throws Exception {
         when(contextService.build(any())).thenReturn(context());
-        mvc.perform(get("/api/v1/invest/ai/context").param("includeJournal", "false").param("includeNotes", "false").with(jwt()))
+        mvc.perform(get("/api/v1/invest/ai/context").param("includeJournal", "false").param("includeNotes", "false"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.includeJournal").value(false))
                 .andExpect(jsonPath("$.includeNotes").value(false));
