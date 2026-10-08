@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **steps 1 (shared foundation), 2 (retrieval) and 3 (chat endpoint) are built**; steps 4 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **steps 1 (shared foundation), 2 (retrieval), 3 (chat endpoint) and 4 (chat screen) are built**; steps 5 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -169,7 +169,7 @@ Stateless server. The client sends the last few turns in `history`. The server d
 - Entry point: an "Ask" button on the Invest home screen and a chat tab or sheet in the Journal screen. Hidden when `GET /ai/status` says `configured=false`; if shown disabled, display the `reason`.
 - Screen: message list, input box, send button, spinner while waiting, a "Cancel" that drops the request on the client.
 - Privacy panel above the input: two switches ("Use journal", "Use notes") mirroring the existing ones in `ai_context_dialog.dart`, plus a link "See what will be sent" opening the existing context preview (extended in 5.5).
-- Each answer shows its sources as chips. Tapping a chip opens that journal entry or note in the existing sheet.
+- Each answer shows its sources as chips. Tapping a chip opens a read-only view of the excerpt the assistant saw, with a button to open the Journal or Learning screen (there is no endpoint to fetch one entry by id, so it does not open the edit sheet).
 - A permanent one-line footer: "AI can be wrong. It does not give financial advice."
 - Errors: 503 ("AI isn't set up on the server"), 429 ("Daily AI limit reached"), 502/504 ("The AI service didn't answer, try again"). Never show a stack trace or the raw upstream body.
 - New files: `lib/services/ai_service.dart`, `lib/models/invest/ai_chat_model.dart`, `lib/screens/invest/ai_chat_screen.dart`. Add a route `invest/ask` in `routes.dart` and `RouteNames.investAsk`.
@@ -340,7 +340,7 @@ Each step is a separate commit and leaves the app working.
 | 1 | **Done.** `LlmResult`/`LlmOptions`, `AiService`, limits, `ai.enabled`, `/usage`, logging rules, tests | Safe base; no user-visible feature yet |
 | 2 | **Done.** `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
 | 3 | **Done.** `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
-| 4 | Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
+| 4 | **Done.** Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | JSON validation toolkit (section 3.3) with tests | Base for feature 2 |
 | 6 | `V27`/`V28`, deterministic rule checks, `/rule-check` (layer 1 only) + Rules screen card | Useful without AI |
 | 7 | Model layer for `/rule-check` + review screen | Feature 2b |
