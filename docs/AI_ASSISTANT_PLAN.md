@@ -278,6 +278,8 @@ Apply: tapping a suggested chip adds it to the tag input in the entry sheet (cli
 
 Optional cache (the only server state in this plan, and not your data): `invest_ai_cache(id, feature, input_hash, response_json, created_at)` keyed by feature and a SHA-256 of the exact prompt, TTL 24 hours, so pressing the button twice does not pay twice. Skip it in the first release if time is short; the daily limits in section 8 already bound cost.
 
+**As built in step 9:** `POST /api/v1/invest/ai/tag-suggestions` as specified, with these choices where the text above was open: the response is `{suggestions: [{kind, tag, isNew, reason}]}`; tags must be one to a few words of letters, digits, spaces, `-` or `_` (at most 40 characters); the most used 50 tags are sent but `isNew` is judged against all of the owner's tags; a tag whose reason is advice is dropped; a full entry (10 tags) sends nothing; there is no exact fallback, so AI off, a limit or an upstream failure are the usual 503/429/502. The optional cache was skipped: the daily and per-minute limits already bound cost, and a repeat press should give a fresh answer. No "what will be sent" preview endpoint was added, because the sheet states what the button sends and the payload is only the draft in front of the owner. The entry sheet has a *Suggest tags* button; tapping a chip adds it to the draft's tags and nothing is stored until the entry is saved.
+
 ### 6.5 Dashboard UI for feature 2
 
 - **Entry sheet** (`journal_entry_sheet.dart`): a small "Suggest tags" button next to the tag input; suggestions appear as tappable chips with the reason on long-press.

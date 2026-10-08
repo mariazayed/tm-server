@@ -363,6 +363,21 @@ Response `{kind, month, text, facts, factsLines, sources, contributionId, model}
   was left out.
 - **Nothing is saved.** The app's "Use in check-in" opens the journal entry sheet with the draft and `contributionId` (the month's
   latest buy) filled in; it is stored only if you save it.
+
+**Tag suggestions (`POST /api/v1/invest/ai/tag-suggestions`).** Request `{"body": "...", "mood": 2, "entryType": "QUICK",
+"existingTags": ["fear"]}`; only `body` is required (1 to 4000 characters), and it may be an unsaved draft. Response
+`{"suggestions": [{"kind": "TAG", "tag": "fear", "isNew": false, "reason": "..."}]}`.
+
+- **What is sent:** the draft text (wrapped as data), its type and mood, the tags it already has, and your **50 most used tags
+  with their counts**. Nothing else from the journal. The app calls it only when you press *Suggest tags*.
+- **What comes back is cleaned, not trusted.** Tags are normalised exactly like the journal does (trim, `#` removed, lower-case,
+  spaces collapsed), must be one to a few words of letters, digits, spaces, `-` or `_` and at most 40 characters, are de-duplicated,
+  and any the entry already has are dropped. At most **2** tags you do not already have are kept (`isNew: true`), at most **5**
+  overall, and never more than the per-entry limit of 10 including the entry's own tags (a full entry sends nothing). A tag whose
+  reason gives investment advice is dropped. An empty list is a valid answer.
+- **Suggestion-only.** No tag is created and no entry is touched; a tag exists only if you keep the chip and save the entry.
+- **No exact fallback,** so unlike the summary this feature returns errors: `503` AI off or not configured, `429` over a limit,
+  `502` the AI did not answer or answered unusably twice. Calls count under `TAG_SUGGESTIONS` in `GET /ai/usage`.
 Exact findings have `source: "DETERMINISTIC"`, `ruleId: null`, `quote: null` and `confidence: "HIGH"`. The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never

@@ -480,4 +480,23 @@ class InvestEndToEndTest {
                 .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("## Facts")));
         mvc.perform(get("/api/v1/invest/ai/usage")).andExpect(jsonPath("$.callsByFeature.CHECKIN_SUMMARY").value(2));
     }
+    @Test
+    @Order(18)
+    void tagSuggestionsComeBackNormalisedAndCreateNothing() throws Exception {
+        int tagsBefore = ((java.util.List<?>) com.jayway.jsonpath.JsonPath.read(
+                mvc.perform(get("/api/v1/invest/journal/tags")).andReturn().getResponse().getContentAsString(), "$")).size();
+        org.mockito.Mockito.when(llm.completeWithUsage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new trademind.tm_server.ai.LlmResult("{\"tags\":[{\"tag\":\"#Brand New Tag\",\"reason\":\"mentions waiting\"}]}", 300, 30, "end_turn"));
+        mvc.perform(post("/api/v1/invest/ai/tag-suggestions").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"I waited before buying.\",\"mood\":3,\"entryType\":\"QUICK\",\"existingTags\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suggestions[0].kind").value("TAG"))
+                .andExpect(jsonPath("$.suggestions[0].tag").value("brand new tag"))
+                .andExpect(jsonPath("$.suggestions[0].isNew").value(true));
+        mvc.perform(get("/api/v1/invest/journal/tags")).andExpect(jsonPath("$.length()").value(tagsBefore));
+        mvc.perform(post("/api/v1/invest/ai/tag-suggestions").contentType(MediaType.APPLICATION_JSON).content("{\"body\":\"\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/usage")).andExpect(jsonPath("$.callsByFeature.TAG_SUGGESTIONS").value(1));
+    }
 }
