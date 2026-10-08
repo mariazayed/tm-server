@@ -1,6 +1,6 @@
 # AI chat and AI journal assistant: implementation plan
 
-Status: **step 1 (shared foundation) is built**; steps 2 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
+Status: **steps 1 (shared foundation) and 2 (retrieval) are built**; steps 3 to 10 are not. Decisions taken (section 12): full-text search only for v1, configurable `rule_wait_hours` plus a `#deviation` tag, neutral summary voice, 60 calls per day and 6 per minute, trusted network only, no streaming in v1.
 Repos touched: `tm-server` (almost all of it) and `tm_dashboard` (UI). `tm-py-server` is not involved.
 
 Two features, in this order:
@@ -284,7 +284,7 @@ Optional cache (the only server state in this plan, and not your data): `invest_
 | Migration | Change | Needed by |
 |---|---|---|
 | `V26__invest_ai_usage.sql` | **Done (step 1).** Per-day call and token counts so the daily cap survives a restart. Not owner data; excluded from the nightly dump | Step 1 |
-| `V27__invest_fulltext_search.sql` | `tsvector` generated columns and GIN indexes on journal entry bodies and learning notes | Feature 1 |
+| `V27__invest_fulltext_search.sql` | **Done (step 2).** Generated `search_vector` columns and GIN indexes on journal entry bodies and learning notes (note titles weighted above bodies) | Feature 1 |
 | `V28__invest_rule_wait_hours.sql` | `invest_settings.rule_wait_hours integer not null default 72 check (rule_wait_hours between 0 and 720)` | 2b |
 | `V29__invest_settings_changes.sql` | audit table for plan changes (old and new values, `changed_at`); same `id/created_at/updated_at/deleted_at/notes` columns as other tables so `EmbeddingSchemaTest` passes | 2b |
 | `V30__invest_ai_cache.sql` *(optional)* | response cache described in 6.4 | 2c, 2a |
@@ -338,7 +338,7 @@ Each step is a separate commit and leaves the app working.
 | # | Step | Result |
 |---|---|---|
 | 1 | **Done.** `LlmResult`/`LlmOptions`, `AiService`, limits, `ai.enabled`, `/usage`, logging rules, tests | Safe base; no user-visible feature yet |
-| 2 | `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
+| 2 | **Done.** `V27` full-text search, `RetrievalService`, tests | Server can find relevant entries |
 | 3 | `/ai/chat` + output check + extended `/context` preview + tests | Feature 1 server complete |
 | 4 | Dashboard chat screen, status gating, privacy switches, source chips | **Feature 1 shipped** |
 | 5 | JSON validation toolkit (section 3.3) with tests | Base for feature 2 |

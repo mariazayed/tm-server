@@ -252,6 +252,24 @@ secrets, deleted items, or anything older than those caps. The rendered text has
 always stay. When a feature calls a model, this text leaves your server for the provider's API, which is
 why the preview endpoint exists.
 
+**Retrieval (`RetrievalService`, V27).** Finds the journal entries and learning notes that relate to a question, so
+a feature can quote older material than the last five entries. It uses PostgreSQL full-text search over generated
+`search_vector` columns (GIN indexes), so there is no embeddings provider and nothing extra leaves the server. It is
+read-only and nothing calls it from an endpoint yet (the chat in the next step will).
+
+- **Matching:** any of the question's words, ranked so rows matching more of them come first; common words are ignored and
+  words are stemmed (`worry` finds `worried`) by the `english` configuration. Only letters and digits of the question are used,
+  so nothing typed can become query syntax. Text in another language is tokenised but not stemmed.
+- **Ranking:** a small recency boost (up to 25%, fading over about 90 days) breaks ties between similar matches. Note titles
+  count for more than note bodies.
+- **Limits:** at most 8 journal entries and 4 notes, plus the 2 newest entries even if they do not match (so questions about
+  "lately" have something to read; they are marked `matched=false`). Each snippet is at most 600 characters, cut around the
+  first place a question word appears, with an ellipsis where text was left out.
+- **Privacy:** a source that is switched off (`includeJournal` / `includeNotes` false) is not queried at all, not even for the
+  newest entries. Soft-deleted rows are never returned. The text is raw: callers must wrap it with `UserContextRenderer.wrap`
+  before putting it in a prompt.
+- **Handles:** each snippet has a stable name, `J12` for journal entry 12 and `N7` for note 7, for citations.
+
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never
 to invent facts outside the context, and to answer "I do not know" when something is not there. Tests pin
