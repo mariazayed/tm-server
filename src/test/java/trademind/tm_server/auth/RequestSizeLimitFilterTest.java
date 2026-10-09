@@ -57,7 +57,7 @@ class RequestSizeLimitFilterTest {
         FilterChain chain = (req, res) -> assertThrows(RequestTooLargeException.class,
                 () -> ((HttpServletRequest) req).getInputStream().readAllBytes());
         MockHttpServletResponse response = new MockHttpServletResponse();
-        filter.doFilter(post("/api/v1/auth/login", new byte[500], false), response, chain);
+        filter.doFilter(post("/api/v1/invest/ping", new byte[500], false), response, chain);
         assertEquals(200, response.getStatus()); // the filter itself does not reject; the read fails
     }
 

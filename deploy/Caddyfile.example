@@ -1,0 +1,20 @@
+# Caddy in front of tm-server. The app itself has no login on purpose; this is the lock.
+# Run the app bound to loopback first:  SERVER_ADDRESS=127.0.0.1  (see docs/EXPOSING_THE_SERVER.md)
+#
+# Make the password hash with:   caddy hash-password
+# Caddy gets HTTPS certificates for a real domain automatically.
+
+invest.example.com {
+	# Only these networks may even reach the password prompt (delete the block to allow anyone with the password).
+	@blocked not remote_ip 203.0.113.0/24 198.51.100.7
+	respond @blocked 403
+
+	basic_auth {
+		# username  bcrypt-hash-from-caddy-hash-password
+		me $2a$14$REPLACE_WITH_THE_HASH
+	}
+
+	# Browsers send an OPTIONS preflight without credentials for the dashboard's cross-origin calls,
+	# so serve the dashboard from this same host (see the guide) rather than a different origin.
+	reverse_proxy 127.0.0.1:8080
+}

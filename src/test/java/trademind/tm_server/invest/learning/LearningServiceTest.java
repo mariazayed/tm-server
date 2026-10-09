@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.datasource.url=${INVEST_TEST_DB_URL}",
         "spring.datasource.username=${INVEST_TEST_DB_USER:postgres}",
         "spring.datasource.password=${INVEST_TEST_DB_PASSWORD:}",
+        "spring.datasource.hikari.maximum-pool-size=2", // every cached test context holds its own pool; the default 10 each exhausts max_connections=100
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.sql.init.mode=always",
@@ -55,7 +56,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
                 + "classpath:db/migration/V23__create_invest_flashcards.sql,"
                 + "classpath:db/migration/V24__invest_reminders.sql,"
-                + "classpath:db/migration/V25__invest_embeddings.sql"
+                + "classpath:db/migration/V25__invest_embeddings.sql,"
+                + "classpath:db/migration/V26__invest_ai_usage.sql,"
+                + "classpath:db/migration/V27__invest_fulltext_search.sql,"
+                + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
+                + "classpath:db/migration/V29__invest_settings_changes.sql"
 })
 class LearningServiceTest {
 

@@ -7,11 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import trademind.tm_server.auth.SecurityConfig;
-import trademind.tm_server.auth.TokenService;
 import trademind.tm_server.enums.JournalEntryType;
 import trademind.tm_server.exceptions.GlobalExceptionHandler;
 import trademind.tm_server.invest.InvestExceptionHandler;
@@ -29,7 +26,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,9 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = JournalControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, JournalController.class, GlobalExceptionHandler.class,
+@Import({JournalController.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
-@TestPropertySource(properties = "app.auth.session-secret=0123456789abcdef0123456789abcdef-test")
 class JournalControllerTest {
 
     @org.springframework.boot.SpringBootConfiguration
@@ -59,22 +54,12 @@ class JournalControllerTest {
     }
 
     @Test
-    void everyRouteRequiresLogin() throws Exception {
-        mvc.perform(get("/api/v1/invest/journal")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/journal/tags")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/journal/checkin-template")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/invest/journal").contentType(MediaType.APPLICATION_JSON).content(VALID))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/v1/invest/journal/5")).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void timelinePassesFiltersAndPagingToTheService() throws Exception {
         when(service.list(any(), eq(1), eq(10))).thenReturn(new PageResponse(List.of(entry()), 1, 10, 11, false));
 
         mvc.perform(get("/api/v1/invest/journal").param("tag", "#Emotion").param("type", "QUICK").param("q", "loud")
                         .param("from", "2026-10-01").param("to", "2026-10-31").param("page", "1").param("size", "10")
-                        .with(jwt()))
+                        )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].body").value("Headlines are loud."))
                 .andExpect(jsonPath("$.items[0].tags[0]").value("emotion"))
@@ -93,7 +78,7 @@ class JournalControllerTest {
     @Test
     void createReturns201() throws Exception {
         when(service.create(any())).thenReturn(entry());
-        mvc.perform(post("/api/v1/invest/journal").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(VALID))
+        mvc.perform(post("/api/v1/invest/journal").contentType(MediaType.APPLICATION_JSON).content(VALID))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(5));
         ArgumentCaptor<EntryRequest> req = ArgumentCaptor.forClass(EntryRequest.class);
@@ -116,7 +101,7 @@ class JournalControllerTest {
                 {"entryType":"QUICK","body":"x","tags":["%s"]}""".formatted("t".repeat(65)),
                 """
                 {"entryType":"NOPE","body":"x"}"""}) {
-            mvc.perform(post("/api/v1/invest/journal").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(bad))
+            mvc.perform(post("/api/v1/invest/journal").contentType(MediaType.APPLICATION_JSON).content(bad))
                     .andExpect(status().isBadRequest());
         }
         verify(service, never()).create(any());
@@ -124,7 +109,7 @@ class JournalControllerTest {
 
     @Test
     void deleteReturns204() throws Exception {
-        mvc.perform(delete("/api/v1/invest/journal/5").with(jwt())).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/invest/journal/5")).andExpect(status().isNoContent());
         verify(service).delete(5L);
     }
 }

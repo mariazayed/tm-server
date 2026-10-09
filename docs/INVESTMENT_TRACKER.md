@@ -14,31 +14,10 @@ Personal tracker for a simple plan. This file is the source of truth for the str
 
 ## Auth
 
-Single owner. `POST /api/v1/auth/login` checks the password against a BCrypt hash and returns a
-signed HS256 token (`Authorization: Bearer <token>`). Protected routes:
-
-- `GET /api/v1/auth/me`
-- everything under `/api/v1/invest/**` (all future tracker endpoints go here)
-
-The existing trade-journal endpoints are unchanged and remain open. Login is rate limited to 5
-attempts per 15 minutes per client address (in memory, single instance). If the settings below are
-missing, login returns 503 and the protected routes stay closed.
-
-### Configuration
-
-| Property (env var)                                    | Meaning                                  |
-| ----------------------------------------------------- | ---------------------------------------- |
-| `app.auth.password-hash` (`APP_AUTH_PASSWORD_HASH`)   | BCrypt hash of your password             |
-| `app.auth.session-secret` (`APP_AUTH_SESSION_SECRET`) | 32+ byte random signing secret           |
-| `app.auth.session-days` (`APP_AUTH_SESSION_DAYS`)     | Token lifetime, 1-90 days (default 14)   |
-
-Generate them (never commit real values; use `application-local.properties` or env vars):
-
-```bash
-python3 -c 'import bcrypt,getpass;print(bcrypt.hashpw(getpass.getpass().encode(),bcrypt.gensalt(12)).decode())'
-# or: htpasswd -bnBC 12 "" 'your long password' | tr -d ':\n'
-openssl rand -base64 48
-```
+There is no authentication. Every route, including everything under `/api/v1/invest/**`, is open to anyone who
+can reach the server, so keep it on a trusted network. By default it listens on every interface; set
+`SERVER_ADDRESS=127.0.0.1` to make it local-only. See `docs/EXPOSING_THE_SERVER.md` before exposing it, and above all
+before turning on `ai.enabled`, which spends money.
 
 ## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`, `V24__invest_reminders.sql`, `V25__invest_embeddings.sql`)
 
@@ -60,6 +39,7 @@ stored as integer cents; share counts and per-share prices are exact decimals. T
 | `invest_learning_note_tags` | Note-to-tag link | `note_id`, `tag_id` |
 | `invest_embeddings` | Unused groundwork for AI search (V25) | `source_type`, `source_id`, `model`, `vector`, `content_hash` |
 | `invest_reminder_log` | One row per reminder sent (V24), unique per month and kind | `month`, `kind`, `sent_at` |
+| `invest_settings_changes` | History of plan changes (V29): one row per changed field, written when the plan is saved with a different amount, ticker or buy day. The settings row itself is overwritten, so this is the only record of an old value | `field_name`, `old_value`, `new_value`, `created_at` |
 | `invest_flashcards` | Spaced-repetition cards (V23) | `front`, `back`, optional `note_id`, `due_on`, `interval_days`, `ease`, `repetitions`, `lapses` |
 
 The migration seeds the settings row ($300, USD, VT, buy day 1), the tags `emotion`, `learning`,
@@ -81,7 +61,7 @@ INVEST_TEST_DB_URL=jdbc:postgresql://localhost:5432/scratch INVEST_TEST_DB_USER=
   mvn test -Dtest=InvestSchemaTest
 ```
 
-## Contribution API (all routes need the login token)
+## Contribution API
 
 | Method and path | Purpose |
 |---|---|
@@ -132,7 +112,7 @@ old, and `priceFromCache` is false when no closes exist yet and your last buy pr
 The series has one point per trading day from your first buy (cumulative invested and value); before
 any prices exist it has one point per buy, valued at the price you paid.
 
-## Journal API (all routes need the login token)
+## Journal API
 
 | Method and path | Purpose |
 |---|---|
@@ -159,7 +139,7 @@ none). `contributionId` is this month's latest buy so the entry can link to it.
 
 Unreadable request bodies (bad JSON, unknown enum values) on the invest routes answer `400`.
 
-## Learning API (all routes need the login token)
+## Learning API
 
 Everything is under `/api/v1/invest/learning`.
 
@@ -187,7 +167,7 @@ days. Ease changes by +0.10 (Easy), 0 (Good) or -0.14 (Hard) and never goes belo
 resets the card to due tomorrow, leaves ease alone and counts a lapse (unless the card was new).
 "Today" is the settings timezone. Editing a card's text never touches its schedule.
 
-## Rules, settings and reminders (all routes need the login token)
+## Rules, settings and reminders
 
 | Method and path | Purpose |
 |---|---|
@@ -195,7 +175,7 @@ resets the card to due tomorrow, leaves ease alone and counts a lapse (unless th
 | `POST /api/v1/invest/rules` | Add a rule at the end (text up to 500 characters, at most 20 rules) |
 | `PUT /api/v1/invest/rules/{id}`, `DELETE /api/v1/invest/rules/{id}` | Edit or delete |
 | `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
-| `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders) |
+| `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders, and optionally `ruleWaitHours`: the wait before a deviation, 0-720, left out keeps the current value) |
 | `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |
 | `POST /api/v1/invest/reminders/test` | Send a test message now; a delivery problem is reported in the body, not as an HTTP error |
 
@@ -232,14 +212,55 @@ Push notifications are not implemented: the Flutter client has no push service b
 
 ## AI foundations (Phase 9)
 
-No AI feature is switched on yet. This is the groundwork, so the first one (a chat over your own notes,
-a monthly summary) can be built without redesigning anything, and so you can see exactly what it would
-be shown before you turn it on.
+The AI assistant is built, **off by default**, and only ever suggests: it reads your rules, journal and notes and never
+edits them. Nothing leaves the server until you set `ai.enabled=true` and a key and model, and every feature that sends your
+text is a button you press (or a switch you turn on), with a preview of the exact prompt where the text is long.
+
+| Feature | Where in the app | Endpoint | Sends your text to the provider? |
+|---|---|---|---|
+| Ask your journal | Chat (`/invest/ask`) | `POST /ai/chat` | Yes, the question and the entries found for it |
+| Consistency check, exact | Rules page card, Review | `POST /ai/rule-check` | No (plain code, works with AI off) |
+| Consistency check, AI reading | Review, switch | `POST /ai/rule-check` with `includeModel` | Yes, rules and up to 40 entries |
+| Monthly facts | Review > Summary | `POST /ai/checkin-summary` | No |
+| Monthly summary draft | Review > Summary, button | `POST /ai/checkin-summary` with `includeModel` | Yes, the facts and up to 20 entries (optional) |
+| Tag suggestions | Entry sheet, button | `POST /ai/tag-suggestions` | Yes, the draft and your tag names |
+
+**Guardrails that apply to all of them** (each has a test; `AiReadOnlyProofTest` proves the first three end to end):
+
+- **Read-only.** After every AI endpoint has been called, every `invest_*` table except the usage counters is byte-for-byte
+  unchanged. The dashboard's AI screens only read, or `POST` to `/ai/...`, until you save an entry yourself.
+- **Hostile text stays data.** Everything you wrote is wrapped, escaped and flattened, so an entry cannot close its wrapper, add a
+  heading or pose as an instruction, and a handle it invents (`[J999]`) never comes back as a source.
+- **No secrets or text in logs.** Entry text, model replies (including rejected ones) and the key never reach the log output.
+- **Model output is checked, not trusted.** Ids and quotes must be real, numbers must be in the facts, advice is removed or the
+  item dropped, JSON must have the exact shape (one repeat, then a clear failure).
+- **Spending is capped** (daily and per-minute), a failed call still counts, and `GET /ai/usage` shows the total.
+- **It degrades, it does not break.** Where there is an exact result (rule check, monthly facts) it is returned even when the AI
+  part cannot run, with the reason.
+
+The rest of this section describes each piece.
 
 | Method and path | Purpose |
 |---|---|
-| `GET /api/v1/invest/ai/status` | `{configured, model, reason}`: whether the server could call a model. The key is never returned |
+| `GET /api/v1/invest/ai/status` | `{configured, model, reason}`: whether the server could call a model (switched on, key and model set). The key is never returned |
+| `GET /api/v1/invest/ai/usage` | Today's (UTC) model calls and tokens against the caps: `{date, callsToday, dailyLimit, perMinuteLimit, inputTokens, outputTokens, callsByFeature}` |
 | `GET /api/v1/invest/ai/context?includeJournal=true&includeNotes=true` | The exact text an AI feature would be given, its size, and whether it was shortened |
+
+**Switch and spending limits (AI assistant, step 1).** AI is **off by default**: set `ai.enabled=true` (and the key and
+model below) to allow any call. Every AI feature goes through one class, `AiService`, which enforces:
+
+| Property | Default | Meaning |
+|---|---|---|
+| `ai.enabled` | `false` | Master switch. Off means every AI route answers `503` and nothing leaves the server |
+| `ai.limits.daily-total` | `60` | Model calls per UTC day, all features together. Counted in `invest_ai_usage`, so a restart does not reset it |
+| `ai.limits.per-minute` | `6` | Calls in any rolling 60 seconds (in memory) |
+| `ai.limits.max-prompt-chars` | `20000` | Largest system plus user prompt; bigger is refused before anything is sent |
+
+Over a cap the API answers `429` with `Retry-After` and nothing is sent. A call is counted before it is made, so a
+failed call still counts. Failures answer `502` with a generic message: the provider's error text is never returned
+or logged, because it can echo the request. Logs hold the feature, sizes, timing and token counts only, never
+prompts or replies. Because the API has no login, these caps are the only thing limiting spend; keep the server
+on a trusted network.
 
 **The key lives on the server only.** It is the same slot the older trade-suggestion feature uses:
 `ai.provider.api-key` and `ai.provider.model` in the untracked `application-local.properties`, or the
@@ -257,6 +278,133 @@ secrets, deleted items, or anything older than those caps. The rendered text has
 `includeJournal=false` / `includeNotes=false` keep those personal parts out entirely; numbers and rules
 always stay. When a feature calls a model, this text leaves your server for the provider's API, which is
 why the preview endpoint exists.
+
+**Retrieval (`RetrievalService`, V27).** Finds the journal entries and learning notes that relate to a question, so
+a feature can quote older material than the last five entries. It uses PostgreSQL full-text search over generated
+`search_vector` columns (GIN indexes), so there is no embeddings provider and nothing extra leaves the server. It is
+read-only; the chat endpoint below is its first user.
+
+- **Matching:** any of the question's words, ranked so rows matching more of them come first; common words are ignored and
+  words are stemmed (`worry` finds `worried`) by the `english` configuration. Only letters and digits of the question are used,
+  so nothing typed can become query syntax. Text in another language is tokenised but not stemmed.
+- **Ranking:** a small recency boost (up to 25%, fading over about 90 days) breaks ties between similar matches. Note titles
+  count for more than note bodies.
+- **Limits:** at most 8 journal entries and 4 notes, plus the 2 newest entries even if they do not match (so questions about
+  "lately" have something to read; they are marked `matched=false`). Each snippet is at most 600 characters, cut around the
+  first place a question word appears, with an ellipsis where text was left out.
+- **Privacy:** a source that is switched off (`includeJournal` / `includeNotes` false) is not queried at all, not even for the
+  newest entries. Soft-deleted rows are never returned. The text is raw: callers must wrap it with `UserContextRenderer.wrap`
+  before putting it in a prompt.
+- **Handles:** each snippet has a stable name, `J12` for journal entry 12 and `N7` for note 7, for citations.
+
+**Ask your journal (`POST /api/v1/invest/ai/chat`).** A read-only chat over your rules, journal entries and learning
+notes. It writes nothing; the server keeps no conversation, so the client sends the last few turns each time.
+
+Request: `{"question": "...", "history": [{"role": "user|assistant", "text": "..."}], "includeJournal": true, "includeNotes": true}`.
+The question is at most 2,000 characters; `history` at most 6 messages, 2,000 characters each and 6,000 in total; both
+switches default to true. Bad input answers `400`. Response:
+`{answer, sources: [{handle, type, id, date, snippet}], usedJournal, usedNotes, truncated, cutOff, model, refusal}`.
+
+- **What the model is sent:** the standing rules, the task instructions, your plan, rules and numbers (no free text from the
+  standing context), the snippets found by `RetrievalService` for this question, the earlier turns, and the question. Each
+  snippet has a handle (`J12`, `N7`) and its date, mood and tags. A source you switched off is not read and the model is
+  told you chose not to share it, so it does not report "nothing found". Everything you or the client wrote, including
+  earlier assistant turns, is wrapped in `<user_text>` tags and flattened to one line.
+- **Size budget:** the whole prompt stays within `ai.limits.max-prompt-chars`. If it would not, older notes are dropped
+  first, then snippets are shortened, then older entries are dropped, then the oldest earlier turns. The rules, numbers and
+  question are never dropped; `truncated` says something was left out.
+- **Citations are checked.** The model cites with `[J12]`. A handle that was not in the prompt is removed from the answer
+  and is never returned as a source, so an invented citation cannot reach the screen.
+- **Advice is blocked.** An answer that tells you to buy, sell, hold or change the plan, or predicts a price or return with a
+  number, is replaced by a fixed refusal (`refusal: "ADVICE"`, no sources). A sentence that restates your own rule or note
+  ("your rule says you should never sell in a crash") is allowed. The patterns are short on purpose and will sometimes
+  refuse a harmless answer; the system prompt remains the main defence. `refusal: "EMPTY"` means no usable answer came back.
+- **Errors:** `503` AI off or not configured, `429` a cap was reached (with `Retry-After`), `502` the model call failed
+  (no detail is passed on), `400` bad input. Each answered question is one counted call.
+- **Preview:** `GET /api/v1/invest/ai/context?feature=chat&q=<question>` (plus `includeJournal` / `includeNotes`) returns
+  the system prompt and the full message that would be sent for that question, built by the same code as the chat, and
+  sends nothing. `characters` there is system plus message, the amount the size cap counts. Without `feature` the
+  endpoint is the standing-context preview as before.
+
+**JSON replies (toolkit for the suggestion features).** Features that return suggestions instead of prose (rule check, tag
+suggestions, check-in summary) ask the model for JSON and read it only through `ModelJson` / `AiJsonService`: one JSON object
+in the requested shape, otherwise one repeat with the reason, otherwise `502` ("The AI answered in a form that could not be
+used"). Ids the model returns are checked against the ids it was shown, and quotes against your actual text, before anything
+reaches the app. The rule check, the summary and the tag suggestions use it. Details: `docs/AI_ASSISTANT_PLAN.md`, section 3.3.
+
+**Consistency checks (`POST /api/v1/invest/ai/rule-check`).** Checks a date range against your own rules. The **exact checks**
+are plain code: no model, nothing sent anywhere, and they work with `ai.enabled` off. Request
+`{"from": "2026-09-17", "to": "2026-10-16", "includeModel": false}` (at most 92 days, otherwise `400`; `includeModel` defaults to
+false). Response `{from, to, waitHours, findings, checks, model}`; `checks` lists each exact check with `RAN` or `OFF` and the
+reason it is off. A finding is `{check, source, date, message, entryIds, ruleId, quote, confidence}`, newest first. Findings are
+computed on request and never stored, and nothing marks an entry. A finding is a prompt to look, not a verdict.
+
+**The AI reading (`includeModel: true`).** Opt-in per request, because it sends your **rules and the text of the journal entries in
+the range** to the AI provider (`GET /ai/context?feature=rulecheck&from=...&to=...` shows the exact prompt first and sends
+nothing). The model is asked which entries show you acting against one of your own rules, never whether a decision was good, and
+never for advice. The exact checks always run first and are always returned; the AI part is added to them.
+
+- **What is sent:** your rules (handles `R1..Rn`) and up to the **newest 40** entries in the range (handles `J<id>`, each cut to 600
+  characters, shortened or dropped oldest-first to fit `ai.limits.max-prompt-chars`). `model.entriesChecked` and
+  `model.entriesSkipped` say how many were read and how many were left out. Rules are never dropped. Everything you wrote is wrapped
+  as data, so text in an entry cannot give the model instructions.
+- **What comes back is checked, not trusted.** A finding is kept only if it names a rule and entries that were really in the prompt;
+  its quote is kept only if it is really in a cited entry (otherwise the finding stays without the quote); **HIGH confidence needs a
+  verified quote** (otherwise it becomes MEDIUM); a finding whose reason gives investment advice is discarded; at most 10 are kept,
+  best confidence first. `model.dropped` counts the discarded ones. If the model proposed findings and every one was unusable, it
+  is asked once more (see the JSON toolkit above) before giving up. A model finding has `source: "MODEL"`, the `ruleId` it
+  concerns, a verified `quote` or null, and `confidence` LOW, MEDIUM or HIGH (the app hides LOW by default).
+- **If the AI part cannot run you still get the exact result.** Instead of an error, `model` is
+  `{requested: true, ran: false, reason}` with the reason: AI switched off or not configured, a daily or per-minute limit reached,
+  no rules written, no entries in the range, the AI service did not answer, an unusable reply twice, or too much text for one call.
+  A bad range is still a `400`, because that is the caller's mistake. Each model call counts as a call against the daily and
+  per-minute limits; a repeat counts as another.
+
+The exact checks and their conventions (rule text is free text and is never parsed):
+
+| Check | Finding when | How it works |
+|---|---|---|
+| `WAIT_PERIOD` | A `deviation` entry has no `decision` entry before it, or too little time after it | Tag an entry `decision` when you decide to deviate from the plan and `deviation` when you act. For each deviation entry in the range, the **earliest** `decision` entry in the 14 days before it starts the clock (an older decision is treated as unrelated, and an entry tagged both counts as a deviation). The gap must be at least the wait. The wait is the setting `ruleWaitHours` (default 72; **0 switches the check off**) |
+| `PLAN_CHANGE` | The monthly amount, ticker or buy day was changed with no journal entry of any kind in the 7 days before | Uses `invest_settings_changes`. Fields saved together are one finding. Deliberately lenient: any entry counts, because the check cannot tell whether the entry is the reason |
+| `MISSED_MONTH` | A month with no purchase has no journal entry written in that month or the 7 days after it | Reported only once those 7 days have passed, so you are not told off while there is still time to write the note |
+
+Plan changes made before this feature existed have no history, so `PLAN_CHANGE` can only see changes from now on.
+
+**Monthly check-in summary (`POST /api/v1/invest/ai/checkin-summary`).** Request `{"month": "2026-09", "includeModel": false,
+"includeJournal": true}`. The month must be `YYYY-MM`, not before the plan started and not in the future (otherwise `400`).
+Response `{kind, month, text, facts, factsLines, sources, contributionId, model}`.
+
+- **The facts always come back and need no AI.** `facts` / `factsLines` are plain arithmetic from your own records: planned and
+  invested amounts, fees, shares, average price, how many days after the buy day you bought, streaks, missed months, the value at
+  the month end (left out when there is no price), journal entry counts, moods, tags and rule notes. With `includeModel` false
+  (the default) nothing is sent anywhere and `ai.enabled` can be off.
+- **The draft (`includeModel: true`)** is opt-in per request. It sends the facts and, with `includeJournal` true, the text of up to
+  the **newest 20** entries of that month (each cut to 600 characters) to the AI provider. `GET /ai/context?feature=checkin&month=...`
+  shows the exact prompt first and sends nothing. The model returns JSON `{text, sources}`: four short bold sections, at most about
+  180 words.
+- **The draft is checked, not trusted.** It is rejected when it is empty, over 220 words, gives investment advice, or contains a
+  **number that is not in the facts or in your own entries** (compared by value, so `1,200` equals `1200.00`). Bracket handles are
+  stripped and `sources` keeps only entries that were really sent. A rejected or failed draft is not an error: you still get the
+  facts, with `model: {requested: true, ran: false, reason}`. `model.entriesSent` / `entriesSkipped` say what was read and what
+  was left out.
+- **Nothing is saved.** The app's "Use in check-in" opens the journal entry sheet with the draft and `contributionId` (the month's
+  latest buy) filled in; it is stored only if you save it.
+
+**Tag suggestions (`POST /api/v1/invest/ai/tag-suggestions`).** Request `{"body": "...", "mood": 2, "entryType": "QUICK",
+"existingTags": ["fear"]}`; only `body` is required (1 to 4000 characters), and it may be an unsaved draft. Response
+`{"suggestions": [{"kind": "TAG", "tag": "fear", "isNew": false, "reason": "..."}]}`.
+
+- **What is sent:** the draft text (wrapped as data), its type and mood, the tags it already has, and your **50 most used tags
+  with their counts**. Nothing else from the journal. The app calls it only when you press *Suggest tags*.
+- **What comes back is cleaned, not trusted.** Tags are normalised exactly like the journal does (trim, `#` removed, lower-case,
+  spaces collapsed), must be one to a few words of letters, digits, spaces, `-` or `_` and at most 40 characters, are de-duplicated,
+  and any the entry already has are dropped. At most **2** tags you do not already have are kept (`isNew: true`), at most **5**
+  overall, and never more than the per-entry limit of 10 including the entry's own tags (a full entry sends nothing). A tag whose
+  reason gives investment advice is dropped. An empty list is a valid answer.
+- **Suggestion-only.** No tag is created and no entry is touched; a tag exists only if you keep the chip and save the entry.
+- **No exact fallback,** so unlike the summary this feature returns errors: `503` AI off or not configured, `429` over a limit,
+  `502` the AI did not answer or answered unusably twice. Calls count under `TAG_SUGGESTIONS` in `GET /ai/usage`.
+Exact findings have `source: "DETERMINISTIC"`, `ruleId: null`, `quote: null` and `confidence: "HIGH"`. The JSON export includes `settings.ruleWaitHours` and `settingsChanges`.
 
 **Guardrails (`AiGuardrails.SYSTEM_PROMPT`).** The model is told to explain, reflect and summarise, never
 to say buy, sell, hold, time the market or change the amount, never to predict prices or returns, never
@@ -310,49 +458,24 @@ survive losing the disk.
 
 ## Security notes
 
-**How access works.** One owner. `POST /api/v1/auth/login` checks a BCrypt hash and returns an HS256
-token valid for `app.auth.session-days`. Everything under `/api/v1/invest/**` and `GET /api/v1/auth/me`
-needs it; there is no cookie, so there is nothing to forge across sites (no CSRF surface). HTTPS in
-front of the app is required, otherwise the token travels in the clear.
-
-**Checked in the Phase 8 pass, and what changed:**
-
-| Check | Result |
-|---|---|
-| Every invest route needs a token | Verified route by route, and `ProtectedRoutesInventoryTest` fails the build if any invest controller is mounted outside `/api/v1/invest`, since that prefix is the only protected one |
-| Login brute force | 5 attempts per 15 minutes per client address. **Fixed:** the table of tracked addresses was unbounded, so a flood from many addresses could grow memory; it is now capped (new addresses beyond 10,000 share one bucket) |
-| Large request bodies | **Fixed:** `@RequestBody String` read any size into memory. Bodies on invest and login routes are capped at `app.max-body-bytes` (2 MiB); too large gets `413`, including chunked uploads that never declare a length |
-| Absurd numbers | **Fixed:** amounts, fees, shares and prices had no upper bounds, so a huge value would hit a database overflow (500) or overflow a sum. They are bounded in the API and again for CSV rows; extra decimals are rounded to what the database stores (price 4, shares 8) |
-| Malformed JSON | **Fixed earlier (Phase 5):** answers `400`, not `500` |
-| Deleted data leaking | **Fixed:** a journal entry kept exposing the id of a buy that had been deleted, in the API and the export |
-| Error messages | Generic bodies; no stack traces or parser details |
-| Secrets | Hash, signing secret, SMTP credentials and the API are configured by environment or untracked files; backups and dumps are owner-only |
-
-**Known limits, not fixed:**
-
-- **The existing trade-journal endpoints are still open.** Only the investing tracker is protected, so
-  the dashboard and the importer keep working. Protecting everything is the biggest remaining step; it
-  needs the Flutter dashboard to force login everywhere and `tm-py-server` to send a token.
-- **Tokens cannot be revoked one by one.** Logging out only forgets the token on the device. To sign
-  every device out, change `app.auth.session-secret` and restart.
-- **Rate limiting uses the connection address.** Behind a reverse proxy every request looks like the
-  proxy, so five failed attempts from anyone lock everybody out of new logins for 15 minutes (tokens
-  already issued keep working). If your proxy is trusted, set `server.forward-headers-strategy=framework`
-  so the real client address is used; never set it when the app is directly reachable, because the
-  header can then be spoofed.
-- The limiter is in memory, single instance, and resets on restart.
-- No second factor, and a single shared password.
-- Swagger UI and `/v3/api-docs` come from the existing app and are public; they describe the API but
-  expose no data.
-- Dependencies were not scanned for known vulnerabilities (no scanner available in the build sandbox).
+The server has no authentication, login or tokens. Do not expose it to an untrusted network. Request bodies
+on invest routes are capped at `app.max-body-bytes` (2 MiB); too large gets `413`. Amounts, fees, shares and
+prices are bounded in the API and for CSV rows. Malformed JSON answers `400`. Error bodies are generic.
+SMTP credentials and the AI API key are configured by environment or untracked files; backups and dumps
+are owner-only. Swagger UI and `/v3/api-docs` are public.
 
 ## Deployment
 
 Any host that runs Java 17 and PostgreSQL. Terminate HTTPS in front of the app (Caddy, nginx or a
-cloud load balancer); bearer tokens must never travel over plain HTTP. Set the two secrets in the
-host's secret store.
+cloud load balancer), and keep the server on a trusted network since it has no login: bind it to
+`127.0.0.1` and let a proxy that holds a password and an IP allowlist be the only way in (examples in `deploy/`,
+guide in `docs/EXPOSING_THE_SERVER.md`). Put SMTP and AI
+credentials in the host's secret store.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `mvn verify` with a PostgreSQL service. `TmServerApplicationTests.contextLoads`
-is skipped in CI because it needs a fully migrated local database.
+`.github/workflows/ci.yml` runs `mvn verify` with a PostgreSQL service, so every test runs, including
+`TmServerApplicationTests.contextLoads` (the whole application starts with its real configuration). Database tests
+are skipped when `INVEST_TEST_DB_URL` is not set. `contextLoads` lets Hibernate build the schema from the entities
+and turns Flyway off, because Flyway on a production database sits on a base schema that predates it and cannot run
+from an empty database; `InvestSchemaTest` is what checks the migrations against the entities.

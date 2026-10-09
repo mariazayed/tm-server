@@ -12,9 +12,9 @@ spring.datasource.password=your_password_here
 # intentionally not hardcoded here since model ids change over time).
 # ai.provider.api-key=sk-ant-...
 # ai.provider.model=
+# Master switch for the investing AI features (off by default); see application.properties for the limits.
+# ai.enabled=true
 
-# Investing tracker auth -- see docs/INVESTMENT_TRACKER.md. Both values are required to enable
-# login. Escape nothing here; properties files take "$" literally.
-# app.auth.password-hash=$2b$12$...
-# app.auth.session-secret=replace-with-output-of-openssl-rand-base64-48
-# app.auth.session-days=14
+# The server has no login. Uncomment to accept connections from this machine only
+# (see docs/EXPOSING_THE_SERVER.md before exposing it anywhere else).
+#server.address=127.0.0.1

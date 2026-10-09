@@ -27,12 +27,14 @@ public record ExportData(
         List<Source> sources,
         List<Note> notes,
         List<Flashcard> flashcards,
-        List<Reminder> reminders) {
+        List<Reminder> reminders,
+        List<SettingsChange> settingsChanges) {
 
     public static final int SCHEMA_VERSION = 1;
 
     public record Settings(long monthlyAmountCents, String currency, int buyDay, String ticker, LocalDate startDate,
-                           String timezone, boolean remindersEnabled, String reminderEmail, int reminderFollowupDays) {
+                           String timezone, boolean remindersEnabled, String reminderEmail, int reminderFollowupDays,
+                           int ruleWaitHours) {
     }
 
     public record Contribution(Long id, LocalDate contributedOn, long amountCents, BigDecimal shares, BigDecimal price,
@@ -63,5 +65,9 @@ public record ExportData(
     }
 
     public record Reminder(String month, String kind, LocalDateTime sentAt) {
+    }
+
+    /** @param field MONTHLY_AMOUNT (cents), TICKER or BUY_DAY */
+    public record SettingsChange(String field, String oldValue, String newValue, LocalDateTime changedAt) {
     }
 }

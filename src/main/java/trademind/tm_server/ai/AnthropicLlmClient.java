@@ -35,7 +35,6 @@ import java.time.Duration;
 public class AnthropicLlmClient implements LlmClient {
 
     private static final String ANTHROPIC_VERSION = "2023-06-01";
-    private static final int MAX_TOKENS = 1536;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -56,6 +55,11 @@ public class AnthropicLlmClient implements LlmClient {
 
     @Override
     public String complete(String systemPrompt, String userPrompt) {
+        return completeWithUsage(systemPrompt, userPrompt, LlmOptions.defaults()).text();
+    }
+
+    @Override
+    public LlmResult completeWithUsage(String systemPrompt, String userPrompt, LlmOptions options) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new LlmException(
                     "ai.provider.api-key is not set -- add it to application-local.properties " +
@@ -69,11 +73,11 @@ public class AnthropicLlmClient implements LlmClient {
             );
         }
 
-        String requestBody = buildRequestBody(systemPrompt, userPrompt);
+        String requestBody = buildRequestBody(systemPrompt, userPrompt, options);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/v1/messages"))
-                .timeout(Duration.ofSeconds(timeoutSeconds))
+                .timeout(Duration.ofSeconds(options.timeoutSeconds() != null ? options.timeoutSeconds() : timeoutSeconds))
                 .header("x-api-key", apiKey)
                 .header("anthropic-version", ANTHROPIC_VERSION)
                 .header("content-type", "application/json")
@@ -93,13 +97,16 @@ public class AnthropicLlmClient implements LlmClient {
             );
         }
 
-        return extractText(response.body());
+        return parse(response.body());
     }
 
-    private String buildRequestBody(String systemPrompt, String userPrompt) {
+    private String buildRequestBody(String systemPrompt, String userPrompt, LlmOptions options) {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("model", model);
-        root.put("max_tokens", MAX_TOKENS);
+        root.put("max_tokens", options.maxTokens());
+        if (options.temperature() != null) {
+            root.put("temperature", options.temperature());
+        }
         root.put("system", systemPrompt);
 
         ArrayNode messages = root.putArray("messages");
@@ -116,7 +123,7 @@ public class AnthropicLlmClient implements LlmClient {
         }
     }
 
-    private String extractText(String responseBody) {
+    private LlmResult parse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode content = root.path("content");
@@ -128,7 +135,11 @@ public class AnthropicLlmClient implements LlmClient {
                     }
                 }
                 if (!text.isEmpty()) {
-                    return text.toString();
+                    JsonNode usage = root.path("usage");
+                    return new LlmResult(text.toString(),
+                            usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asInt() : null,
+                            usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asInt() : null,
+                            root.hasNonNull("stop_reason") ? root.get("stop_reason").asText() : null);
                 }
             }
             throw new LlmException("Anthropic API response had no text content: " + responseBody);

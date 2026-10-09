@@ -7,11 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import trademind.tm_server.auth.SecurityConfig;
-import trademind.tm_server.auth.TokenService;
 import trademind.tm_server.enums.SourceStatus;
 import trademind.tm_server.enums.SourceType;
 import trademind.tm_server.exceptions.GlobalExceptionHandler;
@@ -31,7 +28,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,9 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = LearningControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, LearningController.class, GlobalExceptionHandler.class,
+@Import({LearningController.class, GlobalExceptionHandler.class,
         InvestExceptionHandler.class})
-@TestPropertySource(properties = "app.auth.session-secret=0123456789abcdef0123456789abcdef-test")
 class LearningControllerTest {
 
     @org.springframework.boot.SpringBootConfiguration
@@ -59,26 +54,16 @@ class LearningControllerTest {
     }
 
     @Test
-    void everyRouteRequiresLogin() throws Exception {
-        for (String path : new String[] {"sources", "notes", "notes/tags", "cards", "cards/due", "cards/stats"}) {
-            mvc.perform(get("/api/v1/invest/learning/" + path)).andExpect(status().isUnauthorized());
-        }
-        mvc.perform(post("/api/v1/invest/learning/cards/3/review").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"grade\":\"GOOD\"}")).andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/v1/invest/learning/notes/1")).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void createsSourcesAndPassesTheStatusFilter() throws Exception {
         when(learning.createSource(any())).thenReturn(new SourceResponse(1L, "The Simple Path to Wealth",
                 SourceType.BOOK, null, SourceStatus.TO_DO, null, LocalDateTime.parse("2026-10-06T09:00:00")));
-        mvc.perform(post("/api/v1/invest/learning/sources").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/invest/learning/sources").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"The Simple Path to Wealth\",\"sourceType\":\"BOOK\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("TO_DO"));
 
         when(learning.listSources(SourceStatus.DONE)).thenReturn(List.of());
-        mvc.perform(get("/api/v1/invest/learning/sources").param("status", "DONE").with(jwt()))
+        mvc.perform(get("/api/v1/invest/learning/sources").param("status", "DONE"))
                 .andExpect(status().isOk());
         verify(learning).listSources(SourceStatus.DONE);
     }
@@ -86,7 +71,7 @@ class LearningControllerTest {
     @Test
     void reviewPassesTheGradeAndReturnsTheNewSchedule() throws Exception {
         when(flashcards.review(eq(3L), eq(Sm2Scheduler.Grade.GOOD))).thenReturn(card());
-        mvc.perform(post("/api/v1/invest/learning/cards/3/review").with(jwt())
+        mvc.perform(post("/api/v1/invest/learning/cards/3/review")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"grade\":\"GOOD\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.intervalDays").value(6))
@@ -102,7 +87,7 @@ class LearningControllerTest {
                 {"notes", "{\"title\":\"t\",\"body\":\"\"}"},
                 {"sources", "{\"title\":\"t\"}"},
                 {"sources", "{\"title\":\"t\",\"sourceType\":\"TELEPATHY\"}"}}) {
-            mvc.perform(post("/api/v1/invest/learning/" + bad[0]).with(jwt())
+            mvc.perform(post("/api/v1/invest/learning/" + bad[0])
                     .contentType(MediaType.APPLICATION_JSON).content(bad[1])).andExpect(status().isBadRequest());
         }
         verify(flashcards, never()).review(any(), any());
@@ -115,10 +100,10 @@ class LearningControllerTest {
     void dueQueueAndStats() throws Exception {
         when(flashcards.due(5)).thenReturn(List.of(card()));
         when(flashcards.stats()).thenReturn(new CardStats(10, 4, 2, 3));
-        mvc.perform(get("/api/v1/invest/learning/cards/due").param("limit", "5").with(jwt()))
+        mvc.perform(get("/api/v1/invest/learning/cards/due").param("limit", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].front").value("What is DCA?"));
-        mvc.perform(get("/api/v1/invest/learning/cards/stats").with(jwt()))
+        mvc.perform(get("/api/v1/invest/learning/cards/stats"))
                 .andExpect(jsonPath("$.due").value(4))
                 .andExpect(jsonPath("$.newCards").value(2))
                 .andExpect(jsonPath("$.reviewedToday").value(3));
@@ -127,7 +112,7 @@ class LearningControllerTest {
     @Test
     void noteFiltersArePassedThrough() throws Exception {
         mvc.perform(get("/api/v1/invest/learning/notes").param("sourceId", "4").param("tag", "dca")
-                .param("q", "fixed").param("page", "1").param("size", "5").with(jwt())).andExpect(status().isOk());
+                .param("q", "fixed").param("page", "1").param("size", "5")).andExpect(status().isOk());
         ArgumentCaptor<LearningService.NoteFilter> f = ArgumentCaptor.forClass(LearningService.NoteFilter.class);
         verify(learning).listNotes(f.capture(), eq(1), eq(5));
         assertEquals(4L, f.getValue().sourceId());

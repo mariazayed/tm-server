@@ -47,4 +47,8 @@ public class InvestSettings extends BaseEntity {
 
     @Column(nullable = false)
     private short reminderFollowupDays = 3;
+
+    /** Hours the owner's rule asks them to wait before a deviation; 0 switches the wait-period check off. */
+    @Column(nullable = false)
+    private int ruleWaitHours = 72;
 }

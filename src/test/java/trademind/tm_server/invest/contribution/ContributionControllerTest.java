@@ -6,11 +6,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import trademind.tm_server.auth.SecurityConfig;
-import trademind.tm_server.auth.TokenService;
 import trademind.tm_server.exceptions.GlobalExceptionHandler;
 import trademind.tm_server.invest.dto.ContributionResponse;
 import trademind.tm_server.invest.dto.ImportResult;
@@ -23,7 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,9 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest
 @ContextConfiguration(classes = ContributionControllerTest.TestApp.class)
-@Import({SecurityConfig.class, TokenService.class, ContributionController.class, GlobalExceptionHandler.class,
+@Import({ContributionController.class, GlobalExceptionHandler.class,
         trademind.tm_server.invest.InvestExceptionHandler.class})
-@TestPropertySource(properties = "app.auth.session-secret=0123456789abcdef0123456789abcdef-test")
 class ContributionControllerTest {
 
     @org.springframework.boot.SpringBootConfiguration
@@ -49,23 +44,10 @@ class ContributionControllerTest {
             {"contributedOn":"2026-10-01","amountCents":30000,"shares":2.55489022,"price":117.425}""";
 
     @Test
-    void everyRouteRequiresLogin() throws Exception {
-        mvc.perform(get("/api/v1/invest/contributions")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/contributions/status")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/contributions/export")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/invest/settings")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/invest/contributions").contentType(MediaType.APPLICATION_JSON).content(VALID))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/invest/contributions/import").contentType("text/csv").content("x"))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/v1/invest/contributions/1")).andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void listsContributions() throws Exception {
         when(service.list()).thenReturn(List.of(new ContributionResponse(1L, LocalDate.parse("2026-10-01"),
                 30000, new BigDecimal("2.55489022"), new BigDecimal("117.4250"), 0, null)));
-        mvc.perform(get("/api/v1/invest/contributions").with(jwt()))
+        mvc.perform(get("/api/v1/invest/contributions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].amountCents").value(30000))
                 .andExpect(jsonPath("$[0].contributedOn").value("2026-10-01"));
@@ -75,7 +57,7 @@ class ContributionControllerTest {
     void createReturns201() throws Exception {
         when(service.create(any())).thenReturn(new ContributionResponse(7L, LocalDate.parse("2026-10-01"),
                 30000, new BigDecimal("2.55489022"), new BigDecimal("117.4250"), 0, null));
-        mvc.perform(post("/api/v1/invest/contributions").with(jwt())
+        mvc.perform(post("/api/v1/invest/contributions")
                         .contentType(MediaType.APPLICATION_JSON).content(VALID))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(7));
@@ -83,7 +65,7 @@ class ContributionControllerTest {
 
     @Test
     void invalidBodyIsRejectedBeforeReachingTheService() throws Exception {
-        mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/invest/contributions").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"contributedOn":"2026-10-01","amountCents":0,"shares":1,"price":1}"""))
                 .andExpect(status().isBadRequest());
@@ -92,7 +74,7 @@ class ContributionControllerTest {
 
     @Test
     void malformedJsonIs400NotAServerError() throws Exception {
-        mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/invest/contributions").contentType(MediaType.APPLICATION_JSON)
                         .content("{not json"))
                 .andExpect(status().isBadRequest());
         verify(service, never()).create(any());
@@ -117,7 +99,7 @@ class ContributionControllerTest {
                 """
                 {"contributedOn":"2026-10-01","amountCents":100,"shares":0.1234567890123456789012345,"price":1}"""};
         for (String body : bad) {
-            mvc.perform(post("/api/v1/invest/contributions").with(jwt()).contentType(MediaType.APPLICATION_JSON).content(body))
+            mvc.perform(post("/api/v1/invest/contributions").contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isBadRequest());
         }
         verify(service, never()).create(any());
@@ -129,10 +111,10 @@ class ContributionControllerTest {
                 new ImportResult(0, 0, List.of(new ImportResult.RowError(2, "Date must be YYYY-MM-DD"))));
         when(service.importCsv("good")).thenReturn(new ImportResult(2, 1, List.of()));
 
-        mvc.perform(post("/api/v1/invest/contributions/import").with(jwt()).contentType("text/csv").content("bad"))
+        mvc.perform(post("/api/v1/invest/contributions/import").contentType("text/csv").content("bad"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.errors[0].line").value(2));
-        mvc.perform(post("/api/v1/invest/contributions/import").with(jwt()).contentType("text/csv").content("good"))
+        mvc.perform(post("/api/v1/invest/contributions/import").contentType("text/csv").content("good"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.imported").value(2))
                 .andExpect(jsonPath("$.skipped").value(1));
@@ -141,7 +123,7 @@ class ContributionControllerTest {
     @Test
     void exportIsCsvDownload() throws Exception {
         when(service.exportCsv()).thenReturn("date,amount\n");
-        mvc.perform(get("/api/v1/invest/contributions/export").with(jwt()))
+        mvc.perform(get("/api/v1/invest/contributions/export"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
                 .andExpect(content().string("date,amount\n"));
