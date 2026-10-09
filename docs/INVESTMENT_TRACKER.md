@@ -238,7 +238,7 @@ text is a button you press (or a switch you turn on), with a preview of the exac
 - **It degrades, it does not break.** Where there is an exact result (rule check, monthly facts) it is returned even when the AI
   part cannot run, with the reason.
 
-The rest of this section describes each piece.
+The full feature reference is `docs/AI_FEATURES.md`. The rest of this section describes each piece.
 
 | Method and path | Purpose |
 |---|---|
