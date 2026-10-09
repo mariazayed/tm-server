@@ -15,7 +15,9 @@ Personal tracker for a simple plan. This file is the source of truth for the str
 ## Auth
 
 There is no authentication. Every route, including everything under `/api/v1/invest/**`, is open to anyone who
-can reach the server, so keep it on a trusted network.
+can reach the server, so keep it on a trusted network. By default it listens on every interface; set
+`SERVER_ADDRESS=127.0.0.1` to make it local-only. See `docs/EXPOSING_THE_SERVER.md` before exposing it, and above all
+before turning on `ai.enabled`, which spends money.
 
 ## Data model (Flyway `V22__create_invest_tables.sql`, `V23__create_invest_flashcards.sql`, `V24__invest_reminders.sql`, `V25__invest_embeddings.sql`)
 
@@ -465,7 +467,9 @@ are owner-only. Swagger UI and `/v3/api-docs` are public.
 ## Deployment
 
 Any host that runs Java 17 and PostgreSQL. Terminate HTTPS in front of the app (Caddy, nginx or a
-cloud load balancer), and keep the server on a trusted network since it has no login. Put SMTP and AI
+cloud load balancer), and keep the server on a trusted network since it has no login: bind it to
+`127.0.0.1` and let a proxy that holds a password and an IP allowlist be the only way in (examples in `deploy/`,
+guide in `docs/EXPOSING_THE_SERVER.md`). Put SMTP and AI
 credentials in the host's secret store.
 
 ## CI

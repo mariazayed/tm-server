@@ -14,3 +14,7 @@ spring.datasource.password=your_password_here
 # ai.provider.model=
 # Master switch for the investing AI features (off by default); see application.properties for the limits.
 # ai.enabled=true
+
+# The server has no login. Uncomment to accept connections from this machine only
+# (see docs/EXPOSING_THE_SERVER.md before exposing it anywhere else).
+#server.address=127.0.0.1
