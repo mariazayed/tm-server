@@ -22,9 +22,8 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-      # contextLoads needs a fully migrated local database, so it is excluded here.
-      # InvestSchemaTest applies V22 to the service database and validates the entities.
-      - run: mvn -B verify -Dtest='!TmServerApplicationTests' -Dsurefire.failIfNoSpecifiedTests=false
+      # The database tests (InvestSchemaTest, TmServerApplicationTests, ...) use the service database.
+      - run: mvn -B verify
         env:
           INVEST_TEST_DB_URL: jdbc:postgresql://localhost:5432/postgres
           INVEST_TEST_DB_USER: postgres

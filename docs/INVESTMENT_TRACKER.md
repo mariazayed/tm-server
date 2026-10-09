@@ -470,5 +470,8 @@ credentials in the host's secret store.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `mvn verify` with a PostgreSQL service. `TmServerApplicationTests.contextLoads`
-is skipped in CI because it needs a fully migrated local database.
+`.github/workflows/ci.yml` runs `mvn verify` with a PostgreSQL service, so every test runs, including
+`TmServerApplicationTests.contextLoads` (the whole application starts with its real configuration). Database tests
+are skipped when `INVEST_TEST_DB_URL` is not set. `contextLoads` lets Hibernate build the schema from the entities
+and turns Flyway off, because Flyway on a production database sits on a base schema that predates it and cannot run
+from an empty database; `InvestSchemaTest` is what checks the migrations against the entities.
