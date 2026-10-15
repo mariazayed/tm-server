@@ -4,15 +4,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import trademind.tm_server.invest.Holding;
 import trademind.tm_server.invest.InvestSettings;
 import trademind.tm_server.invest.PriceQuote;
 import trademind.tm_server.invest.repository.ContributionRepository;
+import trademind.tm_server.invest.repository.HoldingRepository;
 import trademind.tm_server.invest.repository.InvestSettingsRepository;
 import trademind.tm_server.invest.repository.PriceQuoteRepository;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,30 +36,55 @@ public class PriceService {
     private final PriceProvider provider;
     private final PriceQuoteRepository prices;
     private final InvestSettingsRepository settings;
+    private final HoldingRepository holdings;
     private final ContributionRepository contributions;
     private final Clock clock;
 
     public PriceService(PriceProvider provider, PriceQuoteRepository prices,
-                        InvestSettingsRepository settings, ContributionRepository contributions, Clock clock) {
+                        InvestSettingsRepository settings, HoldingRepository holdings,
+                        ContributionRepository contributions, Clock clock) {
         this.provider = provider;
         this.prices = prices;
         this.settings = settings;
+        this.holdings = holdings;
         this.contributions = contributions;
         this.clock = clock;
     }
 
     /**
-     * Fetches from the day after the newest cached close (minus a small overlap), or, on first
-     * run, from the earliest contribution or plan start. Safe to call repeatedly.
+     * Refreshes every fund, one after the other. A fund that fails keeps its cached prices and the others still
+     * update; the error names each fund that failed. The reported date is the oldest newest-close among the funds,
+     * the day every fund is priced through.
      */
     @Transactional
     public RefreshResult refresh() {
         InvestSettings s = settings.findById(InvestSettings.SINGLETON_ID).orElseThrow();
-        String ticker = s.getTicker();
         LocalDate today = LocalDate.now(clock.withZone(ZoneId.of(s.getTimezone())));
+        int fetched = 0, inserted = 0, updated = 0;
+        LocalDate through = null;
+        List<String> errors = new ArrayList<>();
+        List<Holding> funds = holdings.findByDeletedAtIsNullOrderByIdAsc();
+        for (Holding h : funds) {
+            RefreshResult r = refresh(h, today);
+            fetched += r.fetched();
+            inserted += r.inserted();
+            updated += r.updated();
+            // with one fund the message is just the provider's, as it always was
+            if (r.error() != null) errors.add(funds.size() == 1 ? r.error() : h.getTicker() + ": " + r.error());
+            if (r.latestDate() != null && (through == null || r.latestDate().isBefore(through))) through = r.latestDate();
+        }
+        return new RefreshResult(fetched, inserted, updated, through, errors.isEmpty() ? null : String.join("; ", errors));
+    }
+
+    /**
+     * Fetches from the day after the newest cached close (minus a small overlap), or, on first
+     * run, from the fund's first buy (or, with none yet, a month back). Safe to call repeatedly.
+     */
+    private RefreshResult refresh(Holding holding, LocalDate today) {
+        String ticker = holding.getTicker();
         LocalDate latest = prices.findFirstByTickerOrderByPriceDateDesc(ticker)
                 .map(PriceQuote::getPriceDate).orElse(null);
-        LocalDate from = latest == null ? backfillStart(s) : latest.minusDays(OVERLAP_DAYS);
+        LocalDate from = latest == null ? backfillStart(holding, today) : latest.minusDays(OVERLAP_DAYS);
         if (from.isAfter(today)) {
             return new RefreshResult(0, 0, 0, latest, null);
         }
@@ -101,11 +129,14 @@ public class PriceService {
         return map;
     }
 
-    private LocalDate backfillStart(InvestSettings s) {
-        LocalDate start = s.getStartDate();
+    /** The fund's first buy, a few days earlier to include the close just before it; a month back with no buys. */
+    private LocalDate backfillStart(Holding holding, LocalDate today) {
+        LocalDate start = null;
         for (var c : contributions.findByDeletedAtIsNullOrderByContributedOnDesc()) {
-            if (c.getContributedOn().isBefore(start)) start = c.getContributedOn();
+            if (!c.getHolding().getId().equals(holding.getId())) continue;
+            if (start == null || c.getContributedOn().isBefore(start)) start = c.getContributedOn();
         }
-        return start.minusDays(OVERLAP_DAYS); // include the close just before the first buy
+        if (start == null) start = today.minusMonths(1);
+        return start.minusDays(OVERLAP_DAYS);
     }
 }

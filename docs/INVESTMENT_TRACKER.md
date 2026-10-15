@@ -101,18 +101,26 @@ leading `'` so spreadsheets do not run them as formulas.
 
 | Method and path | Purpose |
 |---|---|
-| `POST /api/v1/invest/prices/refresh` | Fetch fresh closes now. A provider failure comes back in the body (`error`), not as an HTTP error |
-| `GET /api/v1/invest/performance?range=ALL` | Totals plus a chart series. `range` is `3M`, `6M`, `1Y` or `ALL` and only trims the series |
+| `POST /api/v1/invest/prices/refresh` | Fetch fresh closes for every fund now. A provider failure comes back in the body (`error`), not as an HTTP error. With several funds each failure is named (`AGG: HTTP 429`) and the other funds still update |
+| `GET /api/v1/invest/performance?range=ALL` | Portfolio totals plus a chart series, and a `holdings` breakdown with one entry per fund (its own totals, series, `allocationPct` and `driftPoints` against its target). `range` is `3M`, `6M`, `1Y` or `ALL` and only trims the series |
 
 **Price source.** `PriceProvider` is an interface; `YahooPriceProvider` reads daily closes from Yahoo
 Finance's key-less chart endpoint (unofficial, so it can change or rate-limit). Raw closes are used,
 not dividend-adjusted ones, so they compare with the price you paid. Closes are cached in
-`invest_prices`; the first refresh backfills from your earliest contribution, later ones fetch from
+`invest_prices`; the first refresh of a fund backfills from that fund's earliest buy (a month back when it has none yet), later ones fetch from
 the newest cached close minus 5 days, which also corrects late revisions. A failed fetch never
 touches the cache, and `performance` keeps working from it.
 
 **Daily job.** Off by default. Set `invest.prices.enabled=true` (cron via `invest.prices.refresh-cron`,
 UTC, default 23:30) to refresh automatically.
+
+**Several funds.** Each fund is valued on its own, then the funds are added up: the portfolio's *invested*, *fees*, *value*
+and *gain* are the sums, and its chart series adds the funds day by day (a fund counts as 0 before its first buy and keeps its last
+value on days it has no close). With more than one fund holding anything, `shares` is the plain sum and `averageCost` and
+`currentPrice` are `null`, because shares of different funds cannot be averaged; `priceAsOf` is the oldest of the funds' latest
+closes, `stale` is true if any fund's price is stale, and `ticker` is `MIXED`. With one fund the numbers are exactly what they were.
+All funds are taken to be in the plan's currency; mixing currencies is not supported yet. Set `invest.holdings.multiple=false` to allow
+only one fund.
 
 **Numbers.** *Invested* is cash out of pocket: amounts plus fees. *Average cost* is invested divided
 by shares, so it includes fees. *Value* is shares times the latest close. *Gain %* is gain divided by
@@ -186,7 +194,7 @@ resets the card to due tomorrow, leaves ease alone and counts a lapse (unless th
 | `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
 | `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders, and optionally `ruleWaitHours`: the wait before a deviation, 0-720, left out keeps the current value) |
 | `GET /api/v1/invest/holdings` | The funds you hold, in the order they were added: `[{id, ticker, name, assetClass, region, targetPct, expenseRatio, notes}]` |
-| `POST /api/v1/invest/holdings` | Add a fund (201). While `invest.holdings.multiple` is `false` (the default) a second fund is refused with 400 |
+| `POST /api/v1/invest/holdings` | Add a fund (201). A second fund is refused with 400 when `invest.holdings.multiple` is `false` (it is `true` by default) |
 | `GET/PUT/DELETE /api/v1/invest/holdings/{id}` | Read, replace, delete. A fund with buys, and the last fund, cannot be deleted |
 | `GET /api/v1/invest/settings/changes` | History of plan changes, oldest first: `[{field, oldValue, newValue, changedAt}]`. `field` is `MONTHLY_AMOUNT` (cents), `TICKER` or `BUY_DAY`. Read-only; the Charts screen marks these on the value chart |
 | `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |

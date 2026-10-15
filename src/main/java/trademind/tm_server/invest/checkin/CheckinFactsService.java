@@ -6,11 +6,14 @@ import org.springframework.transaction.annotation.Transactional;
 import trademind.tm_server.exceptions.BadRequestException;
 import trademind.tm_server.invest.Contribution;
 import trademind.tm_server.invest.InvestSettings;
+import trademind.tm_server.invest.Holding;
 import trademind.tm_server.invest.PriceQuote;
 import trademind.tm_server.invest.contribution.ContributionService;
 import trademind.tm_server.invest.contribution.ContributionStatusCalculator;
+import trademind.tm_server.invest.performance.PortfolioCalculator;
 import trademind.tm_server.invest.performance.PerformanceCalculator;
 import trademind.tm_server.invest.repository.ContributionRepository;
+import trademind.tm_server.invest.repository.HoldingRepository;
 import trademind.tm_server.invest.repository.InvestSettingsRepository;
 import trademind.tm_server.invest.repository.PriceQuoteRepository;
 import trademind.tm_server.invest.rulecheck.RuleCheckService;
@@ -56,6 +59,7 @@ public class CheckinFactsService {
 
     private final ContributionRepository contributions;
     private final PriceQuoteRepository prices;
+    private final HoldingRepository holdings;
     private final InvestSettingsRepository settings;
     private final ContributionService contributionService;
     private final RuleCheckService ruleChecks;
@@ -63,10 +67,11 @@ public class CheckinFactsService {
     private final Clock clock;
 
     public CheckinFactsService(ContributionRepository contributions, PriceQuoteRepository prices,
-                               InvestSettingsRepository settings, ContributionService contributionService,
+                               HoldingRepository holdings, InvestSettingsRepository settings, ContributionService contributionService,
                                RuleCheckService ruleChecks, JdbcTemplate jdbc, Clock clock) {
         this.contributions = contributions;
         this.prices = prices;
+        this.holdings = holdings;
         this.settings = settings;
         this.contributionService = contributionService;
         this.ruleChecks = ruleChecks;
@@ -126,24 +131,35 @@ public class CheckinFactsService {
 
         CheckinFacts facts = new CheckinFacts(month.toString(), s.getCurrency(), s.getMonthlyAmountCents(), s.getBuyDay(), due,
                 state, buys, invested, fees, shares, average, firstBuy, daysAfterDue, status.currentStreak(),
-                status.longestStreak(), status.missedCount(), monthEnd(s.getTicker(), asOf), entries.size(), moods,
+                status.longestStreak(), status.missedCount(), monthEnd(asOf), entries.size(), moods,
                 moodAverage, tagCounts(entries), ruleNotes, linkId);
         return new Loaded(facts, entries);
     }
 
-    /** Value at the end of the month from cached market prices; null when there is none on or before that day. */
-    private CheckinFacts.MonthEndValue monthEnd(String ticker, LocalDate asOf) {
-        List<PerformanceCalculator.Buy> upTo = contributions.findByDeletedAtIsNullOrderByContributedOnDesc().stream()
-                .filter(c -> !c.getContributedOn().isAfter(asOf))
-                .map(c -> new PerformanceCalculator.Buy(c.getContributedOn(), c.getAmountCents(), c.getShares(), c.getPrice(), c.getFeeCents()))
-                .toList();
-        if (upTo.isEmpty()) return null;
-        TreeMap<LocalDate, BigDecimal> closes = new TreeMap<>();
-        for (PriceQuote q : prices.findByTickerAndPriceDateBetweenOrderByPriceDateAsc(ticker, LocalDate.of(1900, 1, 1), asOf)) {
-            closes.put(q.getPriceDate(), q.getClose());
+    /**
+     * Value at the end of the month from cached market prices, all funds added up; null when there are no buys by
+     * then or no fund has a cached close on or before that day.
+     */
+    private CheckinFacts.MonthEndValue monthEnd(LocalDate asOf) {
+        Map<Long, List<PerformanceCalculator.Buy>> buysByFund = new java.util.HashMap<>();
+        for (var c : contributions.findByDeletedAtIsNullOrderByContributedOnDesc()) {
+            if (c.getContributedOn().isAfter(asOf)) continue;
+            buysByFund.computeIfAbsent(c.getHolding().getId(), k -> new ArrayList<>())
+                    .add(new PerformanceCalculator.Buy(c.getContributedOn(), c.getAmountCents(), c.getShares(), c.getPrice(), c.getFeeCents()));
         }
-        if (closes.isEmpty()) return null;
-        PerformanceCalculator.Result r = PerformanceCalculator.calculate(upTo, closes, asOf);
+        if (buysByFund.isEmpty()) return null;
+        List<PortfolioCalculator.Fund> funds = new ArrayList<>();
+        boolean anyClose = false;
+        for (Holding h : holdings.findByDeletedAtIsNullOrderByIdAsc()) {
+            TreeMap<LocalDate, BigDecimal> closes = new TreeMap<>();
+            for (PriceQuote q : prices.findByTickerAndPriceDateBetweenOrderByPriceDateAsc(h.getTicker(), LocalDate.of(1900, 1, 1), asOf)) {
+                closes.put(q.getPriceDate(), q.getClose());
+            }
+            anyClose |= !closes.isEmpty();
+            funds.add(new PortfolioCalculator.Fund(h.getId(), h.getTicker(), buysByFund.getOrDefault(h.getId(), List.of()), closes));
+        }
+        if (!anyClose) return null;
+        PerformanceCalculator.Result r = PortfolioCalculator.calculate(funds, asOf).total();
         return new CheckinFacts.MonthEndValue(r.priceAsOf(), r.investedCents(), r.valueCents(), r.gainCents(), r.gainPercent());
     }
 

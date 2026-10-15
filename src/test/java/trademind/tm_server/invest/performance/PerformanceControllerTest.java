@@ -62,4 +62,33 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.error").value("HTTP 429"))
                 .andExpect(jsonPath("$.latestDate").value("2026-10-09"));
     }
+
+    @Test
+    void returnsThePerFundBreakdownAndAllocation() throws Exception {
+        var fund = new HoldingPerformance(2L, "AGG", "US bond fund", "BONDS", new BigDecimal("30"), 20000, 0,
+                new BigDecimal("10"), new BigDecimal("20.0000"), new BigDecimal("22.0000"), LocalDate.parse("2026-10-10"),
+                true, false, 22000, 2000, new BigDecimal("10.00"), new BigDecimal("37.93"), new BigDecimal("7.93"),
+                List.of(new PerformanceResponse.SeriesPoint(LocalDate.parse("2026-10-10"), 20000, 22000)));
+        when(performance.performance("ALL")).thenReturn(new PerformanceResponse("MIXED", "USD", 50000, 0,
+                new BigDecimal("13"), null, null, LocalDate.parse("2026-10-10"), true, false, 58000, 8000,
+                new BigDecimal("16.00"), "ALL", List.of(), List.of(fund)));
+
+        mvc.perform(get("/api/v1/invest/performance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ticker").value("MIXED"))
+                .andExpect(jsonPath("$.averageCost").doesNotExist())
+                .andExpect(jsonPath("$.holdings[0].ticker").value("AGG"))
+                .andExpect(jsonPath("$.holdings[0].allocationPct").value(37.93))
+                .andExpect(jsonPath("$.holdings[0].driftPoints").value(7.93))
+                .andExpect(jsonPath("$.holdings[0].series[0].valueCents").value(22000));
+    }
+
+    @Test
+    void theOldShapeStillHasAnEmptyBreakdown() throws Exception {
+        when(performance.performance("ALL")).thenReturn(new PerformanceResponse("VT", "USD", 0, 0, BigDecimal.ZERO,
+                null, null, null, false, false, 0, 0, null, "ALL", List.of()));
+        mvc.perform(get("/api/v1/invest/performance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.holdings.length()").value(0));
+    }
 }

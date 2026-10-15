@@ -170,6 +170,22 @@ class CheckinFactsServiceTest {
     }
 
     @Test
+    void monthEndValueAddsUpEveryFund() {
+        jdbc.update("INSERT INTO invest_holdings (ticker, asset_class, target_pct) VALUES ('AGG', 'BONDS', 30)");
+        buy("2026-08-01", 30000, "3", "90.0000", 0);                 // VT
+        jdbc.update("INSERT INTO invest_contributions (contributed_on, amount_cents, shares, price, holding_id) "
+                + "VALUES ('2026-09-10', 20000, 10, 20, (SELECT id FROM invest_holdings WHERE ticker = 'AGG'))");
+        close("2026-09-30", "110.0000");                              // VT: 3 shares -> 33000
+        jdbc.update("INSERT INTO invest_prices (ticker, price_date, close) VALUES ('AGG', '2026-09-29', 22)"); // AGG: 10 -> 22000
+        CheckinFacts.MonthEndValue v = service.load(SEP).facts().monthEnd();
+        assertNotNull(v);
+        assertEquals(50000, v.investedToDateCents());
+        assertEquals(33000 + 22000, v.valueCents());
+        assertEquals(5000, v.gainCents());
+        assertEquals(LocalDate.parse("2026-09-29"), v.asOf(), "the oldest of the funds' latest closes");
+    }
+
+    @Test
     void withoutACachedPriceThereIsNoMonthEndValue() {
         buy("2026-09-05", 30000, "3", "100.0000", 0);
         assertNull(service.load(SEP).facts().monthEnd());

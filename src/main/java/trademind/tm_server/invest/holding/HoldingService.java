@@ -32,7 +32,7 @@ public class HoldingService {
 
     public HoldingService(HoldingRepository holdings, ContributionRepository contributions,
                           InvestSettingsRepository settings, SettingsChangeRepository changes,
-                          @Value("${invest.holdings.multiple:false}") boolean multiple) {
+                          @Value("${invest.holdings.multiple:true}") boolean multiple) {
         this.holdings = holdings;
         this.contributions = contributions;
         this.settings = settings;

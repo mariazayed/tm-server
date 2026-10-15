@@ -29,14 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Needs a scratch PostgreSQL; see InvestSchemaTest. After the migration there is one fund, made from the
- * settings ticker (VT). Several funds are switched on for this class.
+ * Needs a scratch PostgreSQL; see InvestSchemaTest. Several funds are switched off for this class.
  */
 @EnabledIfEnvironmentVariable(named = "INVEST_TEST_DB_URL", matches = ".+")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ContextConfiguration(classes = HoldingsOffByDefaultTest.TestApp.class)
-@Import({HoldingService.class, ContributionService.class, SettingsService.class, HoldingsOffByDefaultTest.FixedClock.class})
+@ContextConfiguration(classes = HoldingsSwitchedOffTest.TestApp.class)
+@Import({HoldingService.class, ContributionService.class, SettingsService.class, HoldingsSwitchedOffTest.FixedClock.class})
 @TestPropertySource(properties = {
         "spring.datasource.url=${INVEST_TEST_DB_URL}",
         "spring.datasource.username=${INVEST_TEST_DB_USER:postgres}",
@@ -44,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.datasource.hikari.maximum-pool-size=2",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=validate",
+        "invest.holdings.multiple=false",
         "spring.sql.init.mode=always",
         "spring.sql.init.schema-locations=classpath:invest-schema-reset.sql,"
                 + "classpath:db/migration/V22__create_invest_tables.sql,"
@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V29__invest_settings_changes.sql,"
                 + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
-class HoldingsOffByDefaultTest {
+class HoldingsSwitchedOffTest {
 
     @org.springframework.boot.SpringBootConfiguration
     @org.springframework.boot.autoconfigure.EnableAutoConfiguration

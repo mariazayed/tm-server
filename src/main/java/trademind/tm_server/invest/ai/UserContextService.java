@@ -38,10 +38,12 @@ public class UserContextService {
     private final LearningService learning;
     private final FlashcardService flashcards;
     private final Clock clock;
+    private final trademind.tm_server.invest.repository.HoldingRepository holdings;
 
     public UserContextService(InvestSettingsRepository settings, RulesService rules, PerformanceService performance,
                               ContributionService contributions, JournalService journal, LearningService learning,
-                              FlashcardService flashcards, Clock clock) {
+                              FlashcardService flashcards, Clock clock,
+                              trademind.tm_server.invest.repository.HoldingRepository holdings) {
         this.settings = settings;
         this.rules = rules;
         this.performance = performance;
@@ -50,6 +52,7 @@ public class UserContextService {
         this.learning = learning;
         this.flashcards = flashcards;
         this.clock = clock;
+        this.holdings = holdings;
     }
 
     /** The owner's context, without free text unless the options allow it. */
@@ -79,7 +82,7 @@ public class UserContextService {
         var current = status.months().isEmpty() ? null : status.months().get(status.months().size() - 1);
         return new UserContext(
                 clock.instant(),
-                new UserContext.Plan(s.getMonthlyAmountCents(), s.getCurrency(), s.getBuyDay(), s.getTicker(), s.getStartDate()),
+                new UserContext.Plan(s.getMonthlyAmountCents(), s.getCurrency(), s.getBuyDay(), tickers(s), s.getStartDate()),
                 rules.list().stream().map(RulesService.RuleResponse::text).toList(),
                 new UserContext.Portfolio(p.investedCents(), p.valueCents(), p.gainCents(), p.gainPercent(), p.shares(),
                         p.averageCost(), p.priceAsOf(), p.priceFromCache(), p.stale()),
@@ -88,6 +91,12 @@ public class UserContextService {
                 buys, entries, notes,
                 new UserContext.Cards(cards.total(), cards.due(), cards.newCards()),
                 false);
+    }
+
+    /** Every fund's ticker, e.g. "VT, AGG"; the settings ticker if, oddly, there are none. */
+    private String tickers(InvestSettings s) {
+        List<String> live = holdings.findByDeletedAtIsNullOrderByIdAsc().stream().map(h -> h.getTicker()).toList();
+        return live.isEmpty() ? s.getTicker() : String.join(", ", live);
     }
 
     private static UserContext.Buy toBuy(ContributionResponse c) {
