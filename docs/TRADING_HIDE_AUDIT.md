@@ -162,3 +162,39 @@ Single list drives both `_ModernSidebar` and `_ModernDrawer`. Hide: **Calendar, 
 1. Redirect `/` to `/invest`, or build a new investing home now?
 2. Keep Capital, Goals, Decisions and Planner as shared tools (reframed), or hide them too?
 3. Should trading return later as an opt-in setting, or is this permanent? (Permanent means remove the dead code in Phase 6.)
+
+---
+
+# Phase 4: edge cases and compliance (findings and decisions)
+
+## What switching trading off does to existing data and integrations
+
+| Case | What happens | Decision / action |
+|---|---|---|
+| **Open positions or orders** | The app stores closed, imported trades only (entry and exit fields, `pnl`); it has no order or position state and does not place orders. Nothing can be stranded open. | No migration needed. |
+| **Existing trade history** | Rows stay in the database untouched. Every `/trade`, `/tradeStep`, `/tradeInsight`, `/day`, `/strategies`, `/asset` route is a 404 while the flag is off, including the reads. | Added `GET /api/v1/archive/trades.csv` (read-only, outside the gated prefixes) so history stays reachable for statements and tax records. The dashboard links to it from Invest, Settings, "Trading history". |
+| **MT5 importer** | It POSTs to `/api/v1/trade`, so it gets 404 and stops importing while trading is off. Capital P&L rows stop appearing with it. | Intended. Re-importing after the flag is turned back on is safe: `TradeService.filterNewRequests` drops positions whose `externalId` already exists. Stop or pause the importer job rather than letting it fail quietly. |
+| **Capital (deposits and withdrawals)** | Stays available. The screen only loads DEPOSIT and WITHDRAW rows; old PROFIT/LOSS rows are not shown. | No change. |
+| **Goals and decisions created earlier** | Trade-derived goal categories and the TRADING decision category are hidden from pickers and filters only. Existing rows still list and can be edited. | No change. |
+| **Backups and exports** | `/invest/export` covers investing data only; it never included trade data. Trade data is covered by the new CSV and by database backups (`scripts/backup-invest-db.sh` covers the `invest_*` tables only, so use a full database backup for trade history). | Documented. |
+| **Turning trading back on** | Set `features.trading.enabled=true` and restart the server. Everything reappears; no data changed. | Documented. |
+
+## Compliance and legal
+
+- This is a personal tracker: it holds no brokerage connection, executes no orders, and the repo contains no disclosure,
+  suitability or licensing text to keep or remove. Nothing regulatory was found to preserve.
+- If the app is ever offered to other people, the investing screens would need their own review (performance figures are
+  shown without a disclaimer, and the AI features produce text about money). That is outside this change.
+- The archive CSV contains personal financial records and the endpoint is unauthenticated like the rest of the API (see
+  `docs/INVESTMENT_TRACKER.md`, Auth). Keep the server on a trusted network.
+
+## Accessibility and localisation
+
+- The app has no localisation layer; all strings are English literals, so no translation work is created.
+- Menu and settings additions use standard Material widgets, labelled by text, so they get the default screen-reader
+  labels.
+
+## Not done / left open
+
+- A widget test for the Settings "Trading history" section (needs the fake plan service used by the other settings tests).
+- The importer itself lives outside these repos; pausing it is a manual step.
