@@ -70,7 +70,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql",
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql",
         "app.max-body-bytes=2048",
         "ai.enabled=true",
         "ai.provider.api-key=sk-ant-e2e-SECRET-KEY-VALUE",

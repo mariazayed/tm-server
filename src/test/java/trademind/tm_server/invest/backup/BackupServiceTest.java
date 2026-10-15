@@ -56,8 +56,9 @@ class BackupServiceTest {
                 new ExportData.Settings(30000, "USD", 1, "VT", LocalDate.parse("2026-08-01"), "UTC", true,
                         "me@example.com", 3, 72),
                 List.of(new ExportData.Contribution(1L, LocalDate.parse("2026-10-01"), 30000, new BigDecimal("2.55489022"),
-                        new BigDecimal("117.4250"), 0, note, LocalDateTime.parse("2026-10-01T09:00:00"))),
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+                        new BigDecimal("117.4250"), 0, note, LocalDateTime.parse("2026-10-01T09:00:00"), "VT")),
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new ExportData.Holding(1L, "VT", "Total world fund", "EQUITY", "Global", new BigDecimal("100"), null, null)));
     }
 
     private static BackupService service(Path dir, int keep, MovableClock clock, ExportData data) {
@@ -84,6 +85,8 @@ class BackupServiceTest {
         assertEquals(30000, json.path("contributions").path(0).path("amountCents").asInt());
         assertEquals("2.55489022", json.path("contributions").path(0).path("shares").asString());
         assertEquals("first", json.path("contributions").path(0).path("notes").asString());
+        assertEquals("VT", json.path("contributions").path(0).path("ticker").asString());
+        assertEquals("VT", json.path("holdings").path(0).path("ticker").asString());
         assertEquals("me@example.com", json.path("settings").path("reminderEmail").asString());
     }
 

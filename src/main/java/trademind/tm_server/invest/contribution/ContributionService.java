@@ -2,14 +2,17 @@ package trademind.tm_server.invest.contribution;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import trademind.tm_server.exceptions.BadRequestException;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 import trademind.tm_server.invest.Contribution;
+import trademind.tm_server.invest.Holding;
 import trademind.tm_server.invest.InvestSettings;
 import trademind.tm_server.invest.dto.ContributionRequest;
 import trademind.tm_server.invest.dto.ContributionResponse;
 import trademind.tm_server.invest.dto.ImportResult;
 import trademind.tm_server.invest.dto.InvestSettingsResponse;
 import trademind.tm_server.invest.repository.ContributionRepository;
+import trademind.tm_server.invest.repository.HoldingRepository;
 import trademind.tm_server.invest.repository.InvestSettingsRepository;
 
 import java.time.Clock;
@@ -27,12 +30,14 @@ public class ContributionService {
 
     private final ContributionRepository contributions;
     private final InvestSettingsRepository settings;
+    private final HoldingRepository holdings;
     private final Clock clock;
 
     public ContributionService(ContributionRepository contributions, InvestSettingsRepository settings,
-                               Clock clock) {
+                               HoldingRepository holdings, Clock clock) {
         this.contributions = contributions;
         this.settings = settings;
+        this.holdings = holdings;
         this.clock = clock;
     }
 
@@ -56,7 +61,7 @@ public class ContributionService {
         ContributionRequest request = ContributionValidator.normalize(raw);
         ContributionValidator.validate(request, today());
         Contribution c = new Contribution();
-        apply(c, request);
+        apply(c, request, resolveHolding(request, null));
         return ContributionResponse.from(contributions.save(c));
     }
 
@@ -64,7 +69,7 @@ public class ContributionService {
         ContributionRequest request = ContributionValidator.normalize(raw);
         ContributionValidator.validate(request, today());
         Contribution c = find(id);
-        apply(c, request);
+        apply(c, request, resolveHolding(request, c.getHolding()));
         return ContributionResponse.from(contributions.save(c));
     }
 
@@ -102,7 +107,7 @@ public class ContributionService {
             existing.add(fingerprint(c.getContributedOn(), c.getAmountCents(), c.getShares(), c.getPrice()));
         }
 
-        List<ContributionRequest> toSave = new ArrayList<>();
+        List<Pending> toSave = new ArrayList<>();
         int skipped = 0;
         for (ContributionCsv.ParsedRow row : parsed.rows()) {
             ContributionRequest r;
@@ -113,8 +118,15 @@ public class ContributionService {
                 errors.add(new ImportResult.RowError(row.line(), e.getMessage()));
                 continue;
             }
+            Holding holding;
+            try {
+                holding = resolveHolding(r, null);
+            } catch (RuntimeException e) {
+                errors.add(new ImportResult.RowError(row.line(), e.getMessage()));
+                continue;
+            }
             if (existing.add(fingerprint(r.contributedOn(), r.amountCents(), r.shares(), r.price()))) {
-                toSave.add(r);
+                toSave.add(new Pending(r, holding));
             } else {
                 skipped++;
             }
@@ -122,9 +134,9 @@ public class ContributionService {
         if (!errors.isEmpty()) {
             return new ImportResult(0, 0, errors);
         }
-        for (ContributionRequest r : toSave) {
+        for (Pending p : toSave) {
             Contribution c = new Contribution();
-            apply(c, r);
+            apply(c, p.request(), p.holding());
             contributions.save(c);
         }
         return new ImportResult(toSave.size(), skipped, List.of());
@@ -136,7 +148,31 @@ public class ContributionService {
                 + "|" + price.stripTrailingZeros().toPlainString();
     }
 
-    private static void apply(Contribution c, ContributionRequest r) {
+    private record Pending(ContributionRequest request, Holding holding) {
+    }
+
+    /**
+     * The fund a buy is for: the one named by id or ticker; else, when updating, the one it already has; else
+     * the only fund there is. With several funds and none named the buy is refused rather than guessed.
+     */
+    private Holding resolveHolding(ContributionRequest r, Holding current) {
+        if (r.holdingId() != null) {
+            return holdings.findByIdAndDeletedAtIsNull(r.holdingId())
+                    .orElseThrow(() -> new BadRequestException("Unknown fund " + r.holdingId()));
+        }
+        if (r.ticker() != null && !r.ticker().isBlank()) {
+            String ticker = r.ticker().strip();
+            return holdings.findByTickerIgnoreCaseAndDeletedAtIsNull(ticker)
+                    .orElseThrow(() -> new BadRequestException("Unknown fund " + ticker + ". Add it under Funds first"));
+        }
+        if (current != null) return current;
+        List<Holding> live = holdings.findByDeletedAtIsNullOrderByIdAsc();
+        if (live.size() == 1) return live.get(0);
+        throw new BadRequestException(live.isEmpty() ? "Add a fund first" : "Choose which fund this buy was for");
+    }
+
+    private static void apply(Contribution c, ContributionRequest r, Holding holding) {
+        c.setHolding(holding);
         c.setContributedOn(r.contributedOn());
         c.setAmountCents(r.amountCents());
         c.setShares(r.shares());

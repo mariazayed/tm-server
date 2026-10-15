@@ -12,12 +12,14 @@ TRUNCATE invest_learning_note_tags, invest_journal_entry_tags, invest_learning_n
 UPDATE invest_settings SET start_date = date_trunc('month', CURRENT_DATE) - interval '5 months' WHERE id = 1;
 
 -- Six monthly buys of $300 (price is illustrative, not real market data).
-INSERT INTO invest_contributions (contributed_on, amount_cents, shares, price, fee_cents)
+-- Every buy belongs to a fund; the migration created one from the settings ticker. The funds are kept.
+INSERT INTO invest_contributions (contributed_on, amount_cents, shares, price, fee_cents, holding_id)
 SELECT d::date,
        30000,
        round(300.0 / p, 8),
        p,
-       0
+       0,
+       (SELECT min(id) FROM invest_holdings WHERE deleted_at IS NULL)
 FROM (VALUES
     (date_trunc('month', CURRENT_DATE) - interval '5 months', 112.4000),
     (date_trunc('month', CURRENT_DATE) - interval '4 months', 114.1500),
@@ -28,7 +30,8 @@ FROM (VALUES
 ) AS t(d, p);
 
 INSERT INTO invest_prices (ticker, price_date, close)
-SELECT 'VT', contributed_on, price FROM invest_contributions;
+SELECT (SELECT ticker FROM invest_holdings WHERE deleted_at IS NULL ORDER BY id LIMIT 1), contributed_on, price
+FROM invest_contributions;
 
 INSERT INTO invest_journal_entries (entry_type, mood, body, contribution_id)
 VALUES ('CHECKIN', 4, 'Bought on schedule. Market dipped a little; plan unchanged.', 3),

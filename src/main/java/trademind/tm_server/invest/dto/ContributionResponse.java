@@ -12,10 +12,18 @@ public record ContributionResponse(
         BigDecimal shares,
         BigDecimal price,
         long feeCents,
-        String notes) {
+        String notes,
+        Long holdingId,
+        String ticker) {
+
+    public ContributionResponse(Long id, LocalDate contributedOn, long amountCents, BigDecimal shares, BigDecimal price,
+                                long feeCents, String notes) {
+        this(id, contributedOn, amountCents, shares, price, feeCents, notes, null, null);
+    }
 
     public static ContributionResponse from(Contribution c) {
         return new ContributionResponse(c.getId(), c.getContributedOn(), c.getAmountCents(),
-                c.getShares(), c.getPrice(), c.getFeeCents(), c.getNotes());
+                c.getShares(), c.getPrice(), c.getFeeCents(), c.getNotes(),
+                c.getHolding().getId(), c.getHolding().getTicker());
     }
 }

@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = SettingsChangeTest.TestApp.class)
-@Import({SettingsService.class})
+@Import({SettingsService.class, trademind.tm_server.invest.holding.HoldingService.class})
 @TestPropertySource(properties = {
         "spring.datasource.url=${INVEST_TEST_DB_URL}",
         "spring.datasource.username=${INVEST_TEST_DB_USER:postgres}",
@@ -46,7 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql"
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
 
 class SettingsChangeTest {

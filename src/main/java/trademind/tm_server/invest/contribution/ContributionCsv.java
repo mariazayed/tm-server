@@ -27,7 +27,7 @@ public final class ContributionCsv {
 
     public static final int MAX_ROWS = 5000;
 
-    public static final String[] HEADER = {"date", "amount", "shares", "price", "fee", "notes"};
+    public static final String[] HEADER = {"date", "amount", "shares", "price", "fee", "notes", "ticker"};
 
     private static final Map<String, String> ALIASES = Map.ofEntries(
             Map.entry("date", "date"), Map.entry("trade date", "date"),
@@ -35,7 +35,8 @@ public final class ContributionCsv {
             Map.entry("shares", "shares"), Map.entry("quantity", "shares"),
             Map.entry("price", "price"),
             Map.entry("fee", "fee"), Map.entry("fees", "fee"), Map.entry("commission", "fee"),
-            Map.entry("notes", "notes"), Map.entry("note", "notes"));
+            Map.entry("notes", "notes"), Map.entry("note", "notes"),
+            Map.entry("ticker", "ticker"), Map.entry("symbol", "ticker"), Map.entry("fund", "ticker"));
 
     public record ParsedRow(long line, ContributionRequest request) {
     }
@@ -52,7 +53,7 @@ public final class ContributionCsv {
             for (Contribution c : contributions) {
                 printer.printRecord(c.getContributedOn(), cents(c.getAmountCents()),
                         c.getShares().toPlainString(), c.getPrice().toPlainString(),
-                        cents(c.getFeeCents()), safeCell(c.getNotes()));
+                        cents(c.getFeeCents()), safeCell(c.getNotes()), c.getHolding().getTicker());
             }
         } catch (IOException e) {
             throw new IllegalStateException(e); // StringWriter never throws
@@ -112,8 +113,12 @@ public final class ContributionCsv {
         if (amount <= 0 || shares.signum() <= 0 || price.signum() <= 0 || fee < 0) {
             throw new IllegalArgumentException("Amount, shares and price must be positive; fee cannot be negative");
         }
+        String ticker = columns.containsKey("ticker") ? cell(rec, columns, "ticker") : "";
+        if (ticker.length() > 16) {
+            throw new IllegalArgumentException("Ticker is too long: '" + ticker + "'");
+        }
         return new ContributionRequest(date, amount, shares, price, fee,
-                notes == null || notes.isEmpty() ? null : notes);
+                notes == null || notes.isEmpty() ? null : notes, null, ticker.isEmpty() ? null : ticker);
     }
 
     private static String cell(CSVRecord rec, Map<String, String> columns, String name) {

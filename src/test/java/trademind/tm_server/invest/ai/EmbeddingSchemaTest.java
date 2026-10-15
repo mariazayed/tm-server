@@ -47,7 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql"
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
 class EmbeddingSchemaTest {
 
@@ -126,7 +127,7 @@ class EmbeddingSchemaTest {
     void everyUserDataTableHasAnIdAndFullAuditColumns() {
         Map<String, Set<String>> columns = columnsByTable();
         for (String table : List.of("invest_settings", "invest_contributions", "invest_tags", "invest_journal_entries",
-                "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_settings_changes")) {
+                "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_settings_changes", "invest_holdings")) {
             Set<String> cols = columns.get(table);
             assertNotNull(cols, table + " is missing");
             for (String required : List.of("id", "created_at", "updated_at", "deleted_at", "notes")) {
@@ -152,7 +153,7 @@ class EmbeddingSchemaTest {
         assertEquals(Set.of("invest_settings", "invest_contributions", "invest_tags", "invest_journal_entries",
                 "invest_rules", "invest_sources", "invest_learning_notes", "invest_flashcards", "invest_prices",
                 "invest_reminder_log", "invest_embeddings", "invest_ai_usage", "invest_settings_changes", "invest_journal_entry_tags",
-                "invest_learning_note_tags"),
+                "invest_learning_note_tags", "invest_holdings"),
                 columnsByTable().keySet());
     }
 

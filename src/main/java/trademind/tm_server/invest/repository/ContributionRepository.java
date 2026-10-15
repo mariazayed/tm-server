@@ -14,6 +14,8 @@ public interface ContributionRepository extends JpaRepository<Contribution, Long
 
     Optional<Contribution> findByIdAndDeletedAtIsNull(Long id);
 
+    boolean existsByHoldingIdAndDeletedAtIsNull(Long holdingId);
+
     List<Contribution> findByDeletedAtIsNullAndContributedOnBetweenOrderByContributedOnAsc(
             LocalDate from, LocalDate to);
 }

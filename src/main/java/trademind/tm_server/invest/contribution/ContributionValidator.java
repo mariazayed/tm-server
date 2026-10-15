@@ -23,7 +23,7 @@ public final class ContributionValidator {
     public static ContributionRequest normalize(ContributionRequest r) {
         return new ContributionRequest(r.contributedOn(), r.amountCents(),
                 r.shares().setScale(8, java.math.RoundingMode.HALF_UP),
-                r.price().setScale(4, java.math.RoundingMode.HALF_UP), r.feeCents(), r.notes());
+                r.price().setScale(4, java.math.RoundingMode.HALF_UP), r.feeCents(), r.notes(), r.holdingId(), r.ticker());
     }
 
     public static void validate(ContributionRequest r, LocalDate today) {

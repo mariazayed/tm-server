@@ -28,7 +28,8 @@ public record ExportData(
         List<Note> notes,
         List<Flashcard> flashcards,
         List<Reminder> reminders,
-        List<SettingsChange> settingsChanges) {
+        List<SettingsChange> settingsChanges,
+        List<Holding> holdings) {
 
     public static final int SCHEMA_VERSION = 1;
 
@@ -38,7 +39,11 @@ public record ExportData(
     }
 
     public record Contribution(Long id, LocalDate contributedOn, long amountCents, BigDecimal shares, BigDecimal price,
-                               long feeCents, String notes, LocalDateTime createdAt) {
+                               long feeCents, String notes, LocalDateTime createdAt, String ticker) {
+    }
+
+    public record Holding(Long id, String ticker, String name, String assetClass, String region, BigDecimal targetPct,
+                          BigDecimal expenseRatio, String notes) {
     }
 
     public record Price(String ticker, LocalDate date, BigDecimal close) {

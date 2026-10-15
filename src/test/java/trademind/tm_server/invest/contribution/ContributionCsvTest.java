@@ -13,9 +13,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ContributionCsvTest {
 
+    private static trademind.tm_server.invest.Holding fund(String ticker) {
+        trademind.tm_server.invest.Holding h = new trademind.tm_server.invest.Holding();
+        h.setTicker(ticker);
+        return h;
+    }
+
     @Test
     void exportThenParseRoundTrips() {
         Contribution c = new Contribution();
+        c.setHolding(fund("VT"));
         c.setContributedOn(LocalDate.parse("2026-10-01"));
         c.setAmountCents(30000);
         c.setShares(new BigDecimal("2.55489022"));
@@ -77,6 +84,7 @@ class ContributionCsvTest {
     @Test
     void exportNeutralisesFormulaStyleNotes() {
         Contribution c = new Contribution();
+        c.setHolding(fund("VT"));
         c.setContributedOn(LocalDate.parse("2026-10-01"));
         c.setAmountCents(100);
         c.setShares(BigDecimal.ONE);

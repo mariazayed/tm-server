@@ -2,9 +2,12 @@
 
 Personal tracker for a simple plan. This file is the source of truth for the strategy.
 
+The tracker holds one or more **funds** (stocks or funds with a ticker). The example below uses a single world-stock fund; nothing in
+the tracker depends on that fund.
+
 ## Strategy
 
-- **Asset:** VT (Vanguard Total World Stock ETF) only
+- **Assets:** your funds, each with a target share of the portfolio. The default install has one, VT (a world-stock ETF), as an example
 - **Amount:** $300 every month
 - **Buy day:** _set me (e.g. the 1st)_
 - **Rules:**
@@ -28,7 +31,8 @@ stored as integer cents; share counts and per-share prices are exact decimals. T
 | Table | Purpose | Key columns |
 |---|---|---|
 | `invest_settings` | Single settings row (id pinned to 1) | `monthly_amount_cents`, `currency`, `buy_day` (1-28), `ticker`, `start_date`, `timezone` |
-| `invest_contributions` | One row per monthly buy | `contributed_on`, `amount_cents`, `shares`, `price`, `fee_cents` |
+| `invest_holdings` | The funds you hold (V30). One live row per ticker, case-insensitive. The migration creates the first from the settings ticker | `ticker`, `name`, `asset_class` (`EQUITY`, `BONDS`, `CASH`, `REAL_ESTATE`, `COMMODITIES`, `OTHER`), `region`, `target_pct` (0-100), `expense_ratio` (%, 0-5) |
+| `invest_contributions` | One row per buy | `holding_id` (the fund it was for), `contributed_on`, `amount_cents`, `shares`, `price`, `fee_cents` |
 | `invest_prices` | Cached daily closes (no soft delete) | `ticker`, `price_date`, `close`; unique per ticker and date |
 | `invest_tags` | Shared tag list | `name` (unique, case-insensitive, among live rows) |
 | `invest_journal_entries` | Check-ins, quick notes, decisions | `entry_type`, `mood` (1-5), `body` (markdown), optional `contribution_id` |
@@ -65,7 +69,7 @@ INVEST_TEST_DB_URL=jdbc:postgresql://localhost:5432/scratch INVEST_TEST_DB_USER=
 
 | Method and path | Purpose |
 |---|---|
-| `GET /api/v1/invest/settings` | Plan settings (amount, currency, buy day, ticker, start date) |
+| `GET /api/v1/invest/settings` | Plan settings (amount, currency, buy day, start date, timezone, reminders). `ticker` is the first fund's, kept for older clients |
 | `GET /api/v1/invest/contributions` | List, newest first |
 | `POST /api/v1/invest/contributions` | Create (201) |
 | `GET/PUT/DELETE /api/v1/invest/contributions/{id}` | Read, replace, soft-delete |
@@ -77,13 +81,18 @@ Request body: `contributedOn` (`YYYY-MM-DD`), `amountCents`, `shares`, `price`, 
 and `notes`. Rules: positive amount, shares and price; the date cannot be in the future (judged in
 the settings timezone); `shares` must be within 1% of `amount / price` to allow broker rounding.
 
+**Which fund.** A buy belongs to one fund, named by `holdingId` or `ticker` (either one). Left out: an update keeps the
+buy's current fund, and a new buy uses the only fund when there is exactly one; with several funds it is refused with 400 ("Choose
+which fund this buy was for"). Responses carry `holdingId` and `ticker`.
+
 **Status.** A month is `DONE` with at least one buy, `MISSED` if it ended without one, and for the
 current month `PENDING` (buy day not reached) or `OVERDUE`. Pending and overdue never break the
 streak, so it only resets once a month actually ends empty.
 
-**CSV.** Columns `date, amount, shares, price, fee, notes`, with amount and fee in currency units
+**CSV.** Columns `date, amount, shares, price, fee, notes, ticker`, with amount and fee in currency units
 (`300.00`). Headers are case-insensitive and accept aliases (`trade date`, `total`, `quantity`,
-`commission`, ...); `$` and thousands separators are tolerated. Import is all-or-nothing, reports
+`commission`, `symbol` or `fund` for the ticker, ...); `$` and thousands separators are tolerated. The `ticker` column is optional while
+there is one fund; with several, a row without a known ticker is reported as a bad row. Import is all-or-nothing, reports
 every bad row with its line number, and skips rows identical to an existing contribution, so
 re-importing the same file is safe. Exported notes that start with `=`, `+`, `-` or `@` get a
 leading `'` so spreadsheets do not run them as formulas.
@@ -176,6 +185,9 @@ resets the card to due tomorrow, leaves ease alone and counts a lapse (unless th
 | `PUT /api/v1/invest/rules/{id}`, `DELETE /api/v1/invest/rules/{id}` | Edit or delete |
 | `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
 | `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders, and optionally `ruleWaitHours`: the wait before a deviation, 0-720, left out keeps the current value) |
+| `GET /api/v1/invest/holdings` | The funds you hold, in the order they were added: `[{id, ticker, name, assetClass, region, targetPct, expenseRatio, notes}]` |
+| `POST /api/v1/invest/holdings` | Add a fund (201). While `invest.holdings.multiple` is `false` (the default) a second fund is refused with 400 |
+| `GET/PUT/DELETE /api/v1/invest/holdings/{id}` | Read, replace, delete. A fund with buys, and the last fund, cannot be deleted |
 | `GET /api/v1/invest/settings/changes` | History of plan changes, oldest first: `[{field, oldValue, newValue, changedAt}]`. `field` is `MONTHLY_AMOUNT` (cents), `TICKER` or `BUY_DAY`. Read-only; the Charts screen marks these on the value chart |
 | `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |
 | `POST /api/v1/invest/reminders/test` | Send a test message now; a delivery problem is reported in the body, not as an HTTP error |

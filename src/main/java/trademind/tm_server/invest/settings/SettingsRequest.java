@@ -14,6 +14,7 @@ import java.time.LocalDate;
 /**
  * The whole plan, replaced in one go.
  *
+ * @param ticker            only for clients from before there were several funds; see {@code HoldingService.applyLegacyTicker}
  * @param buyDay            1-28, so every month has it
  * @param reminderEmail     required when reminders are on
  * @param reminderFollowupDays days after the buy day to nudge again
@@ -24,7 +25,7 @@ public record SettingsRequest(
         @NotNull @Positive @Max(100_000_000_00L) Long monthlyAmountCents,
         @NotBlank @Pattern(regexp = "[A-Za-z]{3}") String currency,
         @NotNull @Min(1) @Max(28) Integer buyDay,
-        @NotBlank @Pattern(regexp = "[A-Za-z0-9.\\-]{1,16}") String ticker,
+        @Pattern(regexp = "[A-Za-z0-9.\\-]{1,16}") String ticker,
         @NotNull LocalDate startDate,
         @NotBlank @Size(max = 64) String timezone,
         boolean remindersEnabled,

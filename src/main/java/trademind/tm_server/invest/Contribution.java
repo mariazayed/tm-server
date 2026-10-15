@@ -34,4 +34,9 @@ public class Contribution extends BaseEntity {
 
     @Column(nullable = false)
     private long feeCents;
+
+    /** The fund this buy was for. */
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY, optional = false)
+    @jakarta.persistence.JoinColumn(name = "holding_id", nullable = false)
+    private Holding holding;
 }

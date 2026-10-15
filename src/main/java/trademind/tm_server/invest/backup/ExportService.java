@@ -6,6 +6,7 @@ import trademind.tm_server.invest.InvestSettings;
 import trademind.tm_server.invest.InvestTag;
 import trademind.tm_server.invest.PriceQuote;
 import trademind.tm_server.invest.repository.ContributionRepository;
+import trademind.tm_server.invest.repository.HoldingRepository;
 import trademind.tm_server.invest.repository.FlashcardRepository;
 import trademind.tm_server.invest.repository.InvestSettingsRepository;
 import trademind.tm_server.invest.repository.InvestTagRepository;
@@ -38,13 +39,14 @@ public class ExportService {
     private final FlashcardRepository flashcards;
     private final ReminderLogRepository reminders;
     private final SettingsChangeRepository settingsChanges;
+    private final HoldingRepository holdings;
     private final Clock clock;
 
     public ExportService(InvestSettingsRepository settings, ContributionRepository contributions,
                          PriceQuoteRepository prices, InvestTagRepository tags, JournalEntryRepository journal,
                          RuleRepository rules, LearningSourceRepository sources, LearningNoteRepository notes,
                          FlashcardRepository flashcards, ReminderLogRepository reminders,
-                         SettingsChangeRepository settingsChanges, Clock clock) {
+                         SettingsChangeRepository settingsChanges, HoldingRepository holdings, Clock clock) {
         this.settings = settings;
         this.contributions = contributions;
         this.prices = prices;
@@ -56,6 +58,7 @@ public class ExportService {
         this.flashcards = flashcards;
         this.reminders = reminders;
         this.settingsChanges = settingsChanges;
+        this.holdings = holdings;
         this.clock = clock;
     }
 
@@ -72,7 +75,8 @@ public class ExportService {
                         .sorted(Comparator.comparing(trademind.tm_server.invest.Contribution::getContributedOn)
                                 .thenComparing(trademind.tm_server.invest.Contribution::getId))
                         .map(c -> new ExportData.Contribution(c.getId(), c.getContributedOn(), c.getAmountCents(),
-                                c.getShares(), c.getPrice(), c.getFeeCents(), c.getNotes(), c.getCreatedAt()))
+                                c.getShares(), c.getPrice(), c.getFeeCents(), c.getNotes(), c.getCreatedAt(),
+                                c.getHolding().getTicker()))
                         .toList(),
                 prices.findAll().stream()
                         .sorted(Comparator.comparing(PriceQuote::getTicker).thenComparing(PriceQuote::getPriceDate))
@@ -104,7 +108,10 @@ public class ExportService {
                         .map(r -> new ExportData.Reminder(r.getMonth(), r.getKind().name(), r.getSentAt())).toList(),
                 settingsChanges.findByDeletedAtIsNullOrderByCreatedAtAscIdAsc().stream()
                         .map(c -> new ExportData.SettingsChange(c.getFieldName(), c.getOldValue(), c.getNewValue(),
-                                c.getCreatedAt())).toList());
+                                c.getCreatedAt())).toList(),
+                holdings.findByDeletedAtIsNullOrderByIdAsc().stream()
+                        .map(h -> new ExportData.Holding(h.getId(), h.getTicker(), h.getName(), h.getAssetClass().name(),
+                                h.getRegion(), h.getTargetPct(), h.getExpenseRatio(), h.getNotes())).toList());
     }
 
     private static List<String> tagNames(java.util.Set<InvestTag> tags) {

@@ -59,7 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql"
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
 class JournalServiceTest {
 

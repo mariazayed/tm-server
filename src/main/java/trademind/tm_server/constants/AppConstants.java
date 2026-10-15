@@ -34,6 +34,7 @@ public final class AppConstants {
     public static final String DB_PLANNER_WEEK_EXTRAS = "planner_week_extras";
     public static final String DB_INVEST_SETTINGS = "invest_settings";
     public static final String DB_INVEST_CONTRIBUTIONS = "invest_contributions";
+    public static final String DB_INVEST_HOLDINGS = "invest_holdings";
     public static final String DB_INVEST_PRICES = "invest_prices";
     public static final String DB_INVEST_TAGS = "invest_tags";
     public static final String DB_INVEST_JOURNAL_ENTRIES = "invest_journal_entries";

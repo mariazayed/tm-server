@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = RulesSettingsReminderServiceTest.TestApp.class)
-@Import({RulesService.class, SettingsService.class, ReminderService.class, ContributionService.class,
+@Import({RulesService.class, SettingsService.class, trademind.tm_server.invest.holding.HoldingService.class, ReminderService.class, ContributionService.class,
         RulesSettingsReminderServiceTest.Fakes.class})
 @TestPropertySource(properties = {
         "spring.datasource.url=${INVEST_TEST_DB_URL}",
@@ -65,7 +65,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql"
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
 class RulesSettingsReminderServiceTest {
 

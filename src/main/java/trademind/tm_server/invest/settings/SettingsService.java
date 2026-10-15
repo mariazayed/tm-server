@@ -6,6 +6,7 @@ import trademind.tm_server.exceptions.BadRequestException;
 import trademind.tm_server.invest.InvestSettings;
 import trademind.tm_server.invest.SettingsChange;
 import trademind.tm_server.invest.dto.InvestSettingsResponse;
+import trademind.tm_server.invest.holding.HoldingService;
 import trademind.tm_server.invest.repository.InvestSettingsRepository;
 import trademind.tm_server.invest.repository.SettingsChangeRepository;
 
@@ -22,10 +23,13 @@ public class SettingsService {
 
     private final InvestSettingsRepository settings;
     private final SettingsChangeRepository changes;
+    private final HoldingService holdings;
 
-    public SettingsService(InvestSettingsRepository settings, SettingsChangeRepository changes) {
+    public SettingsService(InvestSettingsRepository settings, SettingsChangeRepository changes,
+                           HoldingService holdings) {
         this.settings = settings;
         this.changes = changes;
+        this.holdings = holdings;
     }
 
     /** The plan's change history, oldest first. Amounts are cents, as stored. */
@@ -52,12 +56,12 @@ public class SettingsService {
         }
 
         InvestSettings s = settings.findById(InvestSettings.SINGLETON_ID).orElseThrow();
-        String ticker = r.ticker().toUpperCase(Locale.ROOT);
-        recordChanges(s, r, ticker);
+        // The ticker belongs to the funds now; an old client's value renames the only fund (and is logged there).
+        holdings.applyLegacyTicker(r.ticker());
+        recordChanges(s, r);
         s.setMonthlyAmountCents(r.monthlyAmountCents());
         s.setCurrency(currency);
         s.setBuyDay(r.buyDay().shortValue());
-        s.setTicker(ticker);
         s.setStartDate(r.startDate());
         s.setTimezone(r.timezone());
         s.setRemindersEnabled(r.remindersEnabled());
@@ -71,14 +75,11 @@ public class SettingsService {
      * Writes one history row per tracked field whose value really changes (saving the same plan again
      * writes nothing). The settings row is overwritten, so this is the only record of the old value.
      */
-    private void recordChanges(InvestSettings current, SettingsRequest r, String newTicker) {
+    private void recordChanges(InvestSettings current, SettingsRequest r) {
         List<SettingsChange> rows = new ArrayList<>();
         if (current.getMonthlyAmountCents() != r.monthlyAmountCents()) {
             rows.add(new SettingsChange(SettingsChange.MONTHLY_AMOUNT,
                     Long.toString(current.getMonthlyAmountCents()), Long.toString(r.monthlyAmountCents())));
-        }
-        if (!current.getTicker().equals(newTicker)) {
-            rows.add(new SettingsChange(SettingsChange.TICKER, current.getTicker(), newTicker));
         }
         if (current.getBuyDay() != r.buyDay()) {
             rows.add(new SettingsChange(SettingsChange.BUY_DAY,

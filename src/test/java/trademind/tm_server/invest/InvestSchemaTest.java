@@ -55,7 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql"
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql"
 })
 class InvestSchemaTest {
 
@@ -68,6 +69,7 @@ class InvestSchemaTest {
 
     @Autowired InvestSettingsRepository settings;
     @Autowired ContributionRepository contributions;
+    @Autowired trademind.tm_server.invest.repository.HoldingRepository holdings;
     @Autowired PriceQuoteRepository prices;
     @Autowired InvestTagRepository tags;
     @Autowired JournalEntryRepository journal;
@@ -87,6 +89,7 @@ class InvestSchemaTest {
     @Test
     void contributionKeepsExactDecimalsAndSoftDeletes() {
         Contribution c = new Contribution();
+        c.setHolding(holdings.findAll().get(0));
         c.setContributedOn(LocalDate.of(2026, 10, 1));
         c.setAmountCents(30000);
         c.setShares(new BigDecimal("2.55489022"));
@@ -105,6 +108,7 @@ class InvestSchemaTest {
     @Test
     void constraintsRejectBadData() {
         Contribution zero = new Contribution();
+        zero.setHolding(holdings.findAll().get(0));
         zero.setContributedOn(LocalDate.of(2026, 10, 1));
         zero.setAmountCents(0);
         zero.setShares(BigDecimal.ONE);
@@ -137,6 +141,7 @@ class InvestSchemaTest {
     @Test
     void journalEntryLinksTagsAndContribution() {
         Contribution c = new Contribution();
+        c.setHolding(holdings.findAll().get(0));
         c.setContributedOn(LocalDate.of(2026, 10, 1));
         c.setAmountCents(30000);
         c.setShares(BigDecimal.ONE);

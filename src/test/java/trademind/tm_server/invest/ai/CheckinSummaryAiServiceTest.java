@@ -58,7 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V26__invest_ai_usage.sql,"
                 + "classpath:db/migration/V27__invest_fulltext_search.sql,"
                 + "classpath:db/migration/V28__invest_rule_wait_hours.sql,"
-                + "classpath:db/migration/V29__invest_settings_changes.sql",
+                + "classpath:db/migration/V29__invest_settings_changes.sql,"
+                + "classpath:db/migration/V30__create_invest_holdings.sql",
         "ai.enabled=true",
         "ai.limits.per-minute=1000",
         "ai.provider.api-key=test-key",
@@ -116,8 +117,8 @@ class CheckinSummaryAiServiceTest {
     }
 
     private long buy(String date, long cents, String shares, String price) {
-        return jdbc.queryForObject("INSERT INTO invest_contributions (contributed_on, amount_cents, shares, price) "
-                + "VALUES (?::date, ?, ?::numeric, ?::numeric) RETURNING id", Long.class, date, cents, shares, price);
+        return jdbc.queryForObject("INSERT INTO invest_contributions (contributed_on, amount_cents, shares, price, holding_id) "
+                + "VALUES (?::date, ?, ?::numeric, ?::numeric, (SELECT min(id) FROM invest_holdings)) RETURNING id", Long.class, date, cents, shares, price);
     }
 
     private long entry(String createdAt, String body, Integer mood, String... tags) {
