@@ -18,7 +18,7 @@ import java.util.List;
  * trading in the UI is not the only thing standing between a client and those routes. The routes
  * simply look absent; the controllers and the data behind them are untouched.
  *
- * <p>Only trading-only prefixes are listed. Shared areas (goals, decisions, planner, capital,
+ * <p>Only trading-only prefixes are listed. Shared areas (goals, decisions, planner,
  * expenses, static data) stay open.
  */
 @Component
@@ -30,7 +30,9 @@ public class TradingGateFilter extends OncePerRequestFilter {
             AppConstants.URL_TRADE_INSIGHT,
             AppConstants.URL_DAY,
             AppConstants.URL_STRATEGIES,
-            AppConstants.URL_ASSET);
+            AppConstants.URL_ASSET,
+            AppConstants.URL_CAPITAL,
+            AppConstants.URL_STRICT_RULES);
 
     private final FeatureFlags flags;
 

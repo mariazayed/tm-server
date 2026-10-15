@@ -19,12 +19,13 @@ class TradingGateFilterTest {
     private static final String[] TRADING = {
             "/api/v1/trade", "/api/v1/trade/search", "/api/v1/trade/5/review", "/api/v1/tradeStep",
             "/api/v1/tradeInsight/3", "/api/v1/day", "/api/v1/day/2026-01-02", "/api/v1/strategies",
-            "/api/v1/asset", "/api/v1/asset/1"};
+            "/api/v1/asset", "/api/v1/asset/1", "/api/v1/capital", "/api/v1/capital/search",
+            "/api/v1/strictRules", "/api/v1/strictRules/2"};
 
     private static final String[] OPEN = {
             "/api/v1/invest/contributions", "/api/v1/invest/ai/chat", "/api/v1/features", "/api/v1/goal",
-            "/api/v1/decision", "/api/v1/planner", "/api/v1/capital", "/api/v1/expense", "/api/v1/expenseReason",
-            "/api/v1/questionAnswers", "/api/v1/reminderNotes", "/api/v1/strictRules", "/api/v1/staticData",
+            "/api/v1/decision", "/api/v1/planner", "/api/v1/expense", "/api/v1/expenseReason",
+            "/api/v1/questionAnswers", "/api/v1/reminderNotes", "/api/v1/staticData",
             "/api/v1/tradePlan-not-a-route", "/api/v1/dayOff"};
 
     private MockHttpServletResponse call(boolean tradingOn, String path)
