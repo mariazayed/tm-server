@@ -50,7 +50,7 @@ VALUES ('The Simple Path to Wealth', 'BOOK', 'IN_PROGRESS'),
 
 INSERT INTO invest_learning_notes (title, body, source_id)
 VALUES ('Dollar-cost averaging', 'Investing a fixed amount on a schedule removes the need to time the market.', 1),
-       ('Expense ratio', 'Fees compound too: a low-cost total-world ETF keeps more of the return.', 2);
+       ('Expense ratio', 'Fees compound too: a low-cost fund keeps more of the return.', 2);
 
 INSERT INTO invest_learning_note_tags (note_id, tag_id)
 SELECT n.id, t.id FROM invest_learning_notes n CROSS JOIN invest_tags t WHERE t.name = 'learning';

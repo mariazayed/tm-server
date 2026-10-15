@@ -2,7 +2,7 @@
 
 Personal tracker for a simple plan. This file is the source of truth for the strategy.
 
-The tracker holds one or more **funds** (stocks or funds with a ticker). The example below uses a single world-stock fund; nothing in
+The tracker holds one or more **funds** (stocks or funds with a ticker). The examples use one fund, VT; nothing in
 the tracker depends on that fund.
 
 ## Strategy
