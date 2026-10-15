@@ -28,6 +28,12 @@ public class SettingsService {
         this.changes = changes;
     }
 
+    /** The plan's change history, oldest first. Amounts are cents, as stored. */
+    @Transactional(readOnly = true)
+    public List<SettingsChangeResponse> changes() {
+        return changes.findByDeletedAtIsNullOrderByCreatedAtAscIdAsc().stream().map(SettingsChangeResponse::from).toList();
+    }
+
     public InvestSettingsResponse update(SettingsRequest r) {
         String currency = r.currency().toUpperCase(Locale.ROOT);
         try {

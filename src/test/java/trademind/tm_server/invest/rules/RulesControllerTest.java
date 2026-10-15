@@ -14,6 +14,7 @@ import trademind.tm_server.invest.InvestExceptionHandler;
 import trademind.tm_server.invest.dto.InvestSettingsResponse;
 import trademind.tm_server.invest.reminder.ReminderKind;
 import trademind.tm_server.invest.reminder.ReminderService;
+import trademind.tm_server.invest.settings.SettingsChangeResponse;
 import trademind.tm_server.invest.settings.SettingsRequest;
 import trademind.tm_server.invest.settings.SettingsService;
 
@@ -141,5 +142,19 @@ class RulesControllerTest {
                 .andExpect(status().isOk()) // failure is in the body, not an HTTP error
                 .andExpect(jsonPath("$.sent").value(false))
                 .andExpect(jsonPath("$.error").value("SMTP down"));
+    }
+
+    @Test
+    void settingsChangeHistoryIsListedOldestFirst() throws Exception {
+        when(settings.changes()).thenReturn(List.of(
+                new SettingsChangeResponse("MONTHLY_AMOUNT", "30000", "45000", LocalDateTime.parse("2026-04-02T08:00:00")),
+                new SettingsChangeResponse("BUY_DAY", "1", "5", LocalDateTime.parse("2026-06-10T08:00:00"))));
+        mvc.perform(get("/api/v1/invest/settings/changes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].field").value("MONTHLY_AMOUNT"))
+                .andExpect(jsonPath("$[0].oldValue").value("30000"))
+                .andExpect(jsonPath("$[0].newValue").value("45000"))
+                .andExpect(jsonPath("$[1].field").value("BUY_DAY"))
+                .andExpect(jsonPath("$[1].changedAt").value("2026-06-10T08:00:00"));
     }
 }

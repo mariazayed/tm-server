@@ -12,6 +12,12 @@ public interface AiUsageStore {
 
     Totals totals(LocalDate day);
 
+    /** Calls per day from {@code from} to {@code to}, both included, oldest first; days with no calls are omitted. */
+    java.util.List<DayCalls> history(LocalDate from, LocalDate to);
+
+    record DayCalls(LocalDate date, long calls) {
+    }
+
     /** Counts one call before it is made, so concurrent or failing calls cannot slip past the cap. */
     void recordCall(LocalDate day, AiFeature feature);
 

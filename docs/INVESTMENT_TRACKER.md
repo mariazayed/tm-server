@@ -176,6 +176,7 @@ resets the card to due tomorrow, leaves ease alone and counts a lapse (unless th
 | `PUT /api/v1/invest/rules/{id}`, `DELETE /api/v1/invest/rules/{id}` | Edit or delete |
 | `PUT /api/v1/invest/rules/order` | Body `{"ids":[...]}`: the new order; it must list every current rule exactly once |
 | `PUT /api/v1/invest/settings` | Replace the plan (amount, currency, buy day, ticker, start date, timezone, reminders, and optionally `ruleWaitHours`: the wait before a deviation, 0-720, left out keeps the current value) |
+| `GET /api/v1/invest/settings/changes` | History of plan changes, oldest first: `[{field, oldValue, newValue, changedAt}]`. `field` is `MONTHLY_AMOUNT` (cents), `TICKER` or `BUY_DAY`. Read-only; the Charts screen marks these on the value chart |
 | `GET /api/v1/invest/reminders` | `emailConfigured` plus the last five reminders sent |
 | `POST /api/v1/invest/reminders/test` | Send a test message now; a delivery problem is reported in the body, not as an HTTP error |
 
@@ -244,6 +245,7 @@ The full feature reference is `docs/AI_FEATURES.md`. The rest of this section de
 |---|---|
 | `GET /api/v1/invest/ai/status` | `{configured, model, reason}`: whether the server could call a model (switched on, key and model set). The key is never returned |
 | `GET /api/v1/invest/ai/usage` | Today's (UTC) model calls and tokens against the caps: `{date, callsToday, dailyLimit, perMinuteLimit, inputTokens, outputTokens, callsByFeature}` |
+| `GET /api/v1/invest/ai/usage/history?days=30` | Model calls per UTC day for the last `days` days (1 to 90), days with none filled in as 0, with the daily cap: `{dailyLimit, days: [{date, calls}]}` |
 | `GET /api/v1/invest/ai/context?includeJournal=true&includeNotes=true` | The exact text an AI feature would be given, its size, and whether it was shortened |
 
 **Switch and spending limits (AI assistant, step 1).** AI is **off by default**: set `ai.enabled=true` (and the key and

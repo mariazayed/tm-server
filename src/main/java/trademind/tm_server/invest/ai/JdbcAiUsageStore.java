@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Repository
@@ -29,6 +30,14 @@ public class JdbcAiUsageStore implements AiUsageStore {
             sums[2] += rs.getLong("output_tokens");
         }, Date.valueOf(day));
         return new Totals(sums[0], sums[1], sums[2], byFeature);
+    }
+
+    @Override
+    public List<DayCalls> history(LocalDate from, LocalDate to) {
+        return jdbc.query("SELECT usage_date, SUM(calls) AS calls FROM invest_ai_usage "
+                + "WHERE usage_date BETWEEN ? AND ? GROUP BY usage_date ORDER BY usage_date",
+                (rs, i) -> new DayCalls(rs.getDate("usage_date").toLocalDate(), rs.getLong("calls")),
+                Date.valueOf(from), Date.valueOf(to));
     }
 
     @Override

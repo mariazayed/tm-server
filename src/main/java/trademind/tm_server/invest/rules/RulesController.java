@@ -19,6 +19,7 @@ import trademind.tm_server.invest.rules.RulesService.OrderRequest;
 import trademind.tm_server.invest.rules.RulesService.RuleRequest;
 import trademind.tm_server.invest.rules.RulesService.RuleResponse;
 import trademind.tm_server.invest.settings.SettingsRequest;
+import trademind.tm_server.invest.settings.SettingsChangeResponse;
 import trademind.tm_server.invest.settings.SettingsService;
 
 import java.util.List;
@@ -71,6 +72,12 @@ public class RulesController {
     @PutMapping("/settings")
     public InvestSettingsResponse updateSettings(@Valid @RequestBody SettingsRequest request) {
         return settings.update(request);
+    }
+
+    /** History of plan changes (amount, ticker, buy day), oldest first. */
+    @GetMapping("/settings/changes")
+    public List<SettingsChangeResponse> settingsChanges() {
+        return settings.changes();
     }
 
     // reminders

@@ -33,6 +33,13 @@ public class AiService {
                         long inputTokens, long outputTokens, Map<String, Long> callsByFeature) {
     }
 
+    public record UsageDay(LocalDate date, long calls) {
+    }
+
+    /** Calls per day against the daily cap, for the usage chart. */
+    public record UsageHistory(int dailyLimit, java.util.List<UsageDay> days) {
+    }
+
     private final LlmClient llm;
     private final AiUsageStore usageStore;
     private final AiProperties properties;
@@ -105,6 +112,17 @@ public class AiService {
                 feature, chars, result.text().length(), millisSince(started), result.inputTokens(),
                 result.outputTokens(), result.stopReason());
         return result;
+    }
+
+    /** Calls per day for the last {@code days} days, today included; days with no calls are filled in as zero. */
+    public UsageHistory history(int days) {
+        LocalDate to = today();
+        LocalDate from = to.minusDays(days - 1L);
+        java.util.Map<LocalDate, Long> byDay = new java.util.HashMap<>();
+        for (AiUsageStore.DayCalls d : usageStore.history(from, to)) byDay.put(d.date(), d.calls());
+        java.util.List<UsageDay> out = new java.util.ArrayList<>();
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) out.add(new UsageDay(d, byDay.getOrDefault(d, 0L)));
+        return new UsageHistory(properties.limits().dailyTotal(), out);
     }
 
     public Usage usage() {

@@ -75,6 +75,13 @@ public class AiController {
         return aiService.usage();
     }
 
+    /** Calls per day for the last {@code days} days (1 to 90), against the daily cap. */
+    @GetMapping("/usage/history")
+    public AiService.UsageHistory usageHistory(@RequestParam(defaultValue = "30") int days) {
+        if (days < 1 || days > 90) throw new BadRequestException("days must be between 1 and 90");
+        return aiService.history(days);
+    }
+
     static Status status(boolean enabled, String apiKey, String model) {
         if (!enabled) {
             boolean named = model != null && !model.isBlank();

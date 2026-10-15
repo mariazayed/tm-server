@@ -33,6 +33,17 @@ class InMemoryAiUsageStore implements AiUsageStore {
     }
 
     @Override
+    public synchronized java.util.List<DayCalls> history(LocalDate from, LocalDate to) {
+        Map<LocalDate, Long> byDay = new TreeMap<>();
+        for (var e : rows.entrySet()) {
+            LocalDate d = LocalDate.parse(e.getKey().substring(0, e.getKey().indexOf('|')));
+            if (d.isBefore(from) || d.isAfter(to)) continue;
+            byDay.merge(d, e.getValue()[0], Long::sum);
+        }
+        return byDay.entrySet().stream().map(e -> new DayCalls(e.getKey(), e.getValue())).toList();
+    }
+
+    @Override
     public synchronized void recordCall(LocalDate day, AiFeature feature) {
         if (failOnRecord) throw new IllegalStateException("store down");
         rows.computeIfAbsent(key(day, feature), k -> new long[3])[0]++;

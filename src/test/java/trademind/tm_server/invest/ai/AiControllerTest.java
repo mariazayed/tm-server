@@ -320,4 +320,27 @@ class AiControllerTest {
                 .andExpect(jsonPath("$.includeJournal").value(false))
                 .andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("chose not to share their journal")));
     }
+
+    @Test
+    void usageHistoryFillsEmptyDaysAndReportsTheCap() throws Exception {
+        usage.recordCall(LocalDate.parse("2026-10-04"), AiFeature.CHAT);
+        usage.recordCall(LocalDate.parse("2026-10-04"), AiFeature.CHAT);
+        usage.recordCall(LocalDate.parse("2026-10-06"), AiFeature.CHAT);
+        mvc.perform(get("/api/v1/invest/ai/usage/history?days=4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dailyLimit").isNumber())
+                .andExpect(jsonPath("$.days.length()").value(4))
+                .andExpect(jsonPath("$.days[0].date").value("2026-10-03"))
+                .andExpect(jsonPath("$.days[0].calls").value(0))
+                .andExpect(jsonPath("$.days[1].calls").value(2))
+                .andExpect(jsonPath("$.days[2].calls").value(0))
+                .andExpect(jsonPath("$.days[3].date").value("2026-10-06"))
+                .andExpect(jsonPath("$.days[3].calls").value(1));
+    }
+
+    @Test
+    void usageHistoryRejectsAnUnreasonableRange() throws Exception {
+        mvc.perform(get("/api/v1/invest/ai/usage/history?days=0")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/invest/ai/usage/history?days=91")).andExpect(status().isBadRequest());
+    }
 }
