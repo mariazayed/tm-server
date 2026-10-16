@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "ai.enabled=true",
         "ai.limits.per-minute=1000",
+        "ai.limits.daily-total=60",
         "ai.provider.api-key=sk-ant-THIS-MUST-NEVER-LEAK",
         "ai.provider.model=claude-test-model"
 })
