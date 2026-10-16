@@ -15,4 +15,5 @@ import java.time.LocalDateTime;
 public class NewReminderNoteRequest {
     @NotNull(message = "Required")
     private String text;
+    private Long categoryId;
 }

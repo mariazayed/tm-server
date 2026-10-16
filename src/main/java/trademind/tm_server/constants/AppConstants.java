@@ -65,6 +65,7 @@ public final class AppConstants {
     public static final String URL_DAY = API_VERSION + "/day";
     public static final String URL_CAPITAL = API_VERSION + "/capital";
     public static final String URL_REMINDER_NOTES = API_VERSION + "/reminderNotes";
+    public static final String URL_REMINDER_NOTE_CATEGORIES = API_VERSION + "/reminderNoteCategories";
     public static final String URL_STRICT_RULES = API_VERSION + "/strictRules";
     public static final String URL_GOAL = API_VERSION + "/goal";
     public static final String URL_DECISION = API_VERSION + "/decision";

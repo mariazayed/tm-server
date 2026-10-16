@@ -27,6 +27,10 @@ public final class ContributionValidator {
     }
 
     public static void validate(ContributionRequest r, LocalDate today) {
+        validate(r, today, false);
+    }
+
+    public static void validate(ContributionRequest r, LocalDate today, boolean mayUsePriorCash) {
         // The same bounds as the request annotations: CSV rows never pass through bean validation.
         if (r.amountCents() > ContributionRequest.MAX_CENTS
                 || (r.feeCents() != null && r.feeCents() > ContributionRequest.MAX_FEE_CENTS)
@@ -39,6 +43,12 @@ public final class ContributionValidator {
         }
         BigDecimal cash = BigDecimal.valueOf(r.amountCents()).movePointLeft(2);
         BigDecimal expectedShares = cash.divide(r.price(), MathContext.DECIMAL64);
+        // Whole-share purchases can use cash left from earlier contributions;
+        // the service checks that the running cash balance covers the purchase.
+        if (r.shares().stripTrailingZeros().scale() <= 0
+                && (mayUsePriorCash || r.shares().compareTo(expectedShares) <= 0)) {
+            return;
+        }
         BigDecimal gap = r.shares().subtract(expectedShares).abs()
                 .divide(expectedShares, MathContext.DECIMAL64);
         if (gap.compareTo(TOLERANCE) > 0) {

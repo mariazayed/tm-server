@@ -59,17 +59,21 @@ public class ContributionService {
 
     public ContributionResponse create(ContributionRequest raw) {
         ContributionRequest request = ContributionValidator.normalize(raw);
-        ContributionValidator.validate(request, today());
+        ContributionValidator.validate(request, today(), true);
+        Holding holding = resolveHolding(request, null);
+        validateAvailableCash(request, null);
         Contribution c = new Contribution();
-        apply(c, request, resolveHolding(request, null));
+        apply(c, request, holding);
         return ContributionResponse.from(contributions.save(c));
     }
 
     public ContributionResponse update(Long id, ContributionRequest raw) {
         ContributionRequest request = ContributionValidator.normalize(raw);
-        ContributionValidator.validate(request, today());
+        ContributionValidator.validate(request, today(), true);
         Contribution c = find(id);
-        apply(c, request, resolveHolding(request, c.getHolding()));
+        Holding holding = resolveHolding(request, c.getHolding());
+        validateAvailableCash(request, id);
+        apply(c, request, holding);
         return ContributionResponse.from(contributions.save(c));
     }
 
@@ -179,6 +183,25 @@ public class ContributionService {
         c.setPrice(r.price());
         c.setFeeCents(r.feeCents() == null ? 0 : r.feeCents());
         c.setNotes(r.notes() == null || r.notes().isBlank() ? null : r.notes().trim());
+    }
+
+    private void validateAvailableCash(ContributionRequest request, Long excludedId) {
+        long available = 0;
+        for (Contribution prior : contributions.findByDeletedAtIsNullOrderByContributedOnDesc()) {
+            if (excludedId != null && excludedId.equals(prior.getId())) continue;
+            if (prior.getContributedOn().isAfter(request.contributedOn())) {
+                continue;
+            }
+            long shareCostCents = prior.getShares().multiply(prior.getPrice()).movePointRight(2)
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+            available += prior.getAmountCents() - shareCostCents;
+        }
+        available += request.amountCents();
+        long requestedCostCents = request.shares().multiply(request.price()).movePointRight(2)
+                .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+        if (requestedCostCents > available) {
+            throw new BadRequestException("Not enough available cash for these whole shares");
+        }
     }
 
     private Contribution find(Long id) {

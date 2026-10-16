@@ -50,7 +50,7 @@ curl -s $BASE/archive/trades.csv | head -3   # header + your past trades
 - [ ] Fresh load lands on Invest, not the old home. Opening `/`, `/trades`, `/calendar`, `/trading-hours`,
       `/risk-management`, `/strategies`, `/assets` all end up on `/invest`. Check a bookmark and a hard refresh too.
 - [ ] Menu shows: Invest (Overview, Contributions, Journal, Learning, Rules, Ask your journal, Review, Settings),
-      Goals, Planner, Decisions, Questions & Answers, Expenses, Others (Deposits & Withdraws, Expense Reasons,
+      Goals, Planner, Decisions, Questions & Answers, Others (Deposits & Withdraws, Expenses, Expense Reasons,
       Reminder Notes, Strict Rules). No Home, Calendar, Trading Hours, Trades, Assets, Risk Management, Strategies.
 - [ ] Both layouts: wide window (sidebar) and a narrow one (drawer).
 - [ ] Add a contribution, open the journal, change a setting: investing still works end to end.

@@ -12,8 +12,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * @param amountCents cash invested in cents, excluding the fee
- * @param shares      shares bought (fractions allowed)
+ * @param amountCents contributed cash in cents, excluding the fee
+ * @param shares      shares bought (fractions allowed for imported or broker-reported buys)
  * @param price       per-share execution price
  * @param feeCents    broker fee in cents; defaults to 0
  */

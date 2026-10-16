@@ -9,6 +9,7 @@ import trademind.tm_server.reminderNote.dto.NewReminderNoteRequest;
 import trademind.tm_server.reminderNote.dto.ReminderNoteSearchRequest;
 import trademind.tm_server.reminderNote.repository.ReminderNoteRepository;
 import trademind.tm_server.reminderNote.repository.ReminderNoteSearchRepository;
+import trademind.tm_server.reminderNote.repository.ReminderNoteCategoryRepository;
 import trademind.tm_server.exceptions.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
@@ -28,11 +29,21 @@ public class ReminderNoteService {
     @Autowired
     private ReminderNoteMapper mapper;
 
+    @Autowired
+    private ReminderNoteCategoryRepository categoryRepository;
+
     private final String tableName = "Reminder Notes";
 
     public List<ReminderNoteResponse> create(List<NewReminderNoteRequest> requests) {
         List<ReminderNote> reminderNoteEntities = requests.stream()
-                .map(mapper::toEntity)
+                .map(request -> {
+                    ReminderNote note = mapper.toEntity(request);
+                    if (request.getCategoryId() != null) {
+                        note.setCategory(categoryRepository.findByIdAndDeletedAtIsNull(request.getCategoryId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Reminder Note Category", "id", request.getCategoryId())));
+                    }
+                    return note;
+                })
                 .toList();
 
         List<ReminderNote> savedReminderNotes = repository.saveAll(reminderNoteEntities);

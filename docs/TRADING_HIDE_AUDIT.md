@@ -38,7 +38,7 @@ Legend: **HIDE** = trading-only. **REFRAME** = shared, needs trading wording or 
 | `/api/v1/goal` | `GoalController` | **REFRAME** | Generic, but `GoalCategoryEnum` has `TRADE_QUALITY`. |
 | `/api/v1/decision` | `DecisionController` | **REFRAME** | Generic, but `DecisionCategoryEnum` has `TRADING` next to `INVESTING`. |
 | `/api/v1/planner` | `PlannerController` | **REFRAME** | Weekly planner. Only copy mentions trading. |
-| `/api/v1/expense`, `/expenseReason` | `ExpenseController`, `ExpenseReasonController` | **KEEP** | Personal finance, not trading. Check copy only. |
+| `/api/v1/expense`, `/expenseReason` | `ExpenseController`, `ExpenseReasonController` | **HIDE** | Trading expenses and their reason list. |
 | `/api/v1/questionAnswers`, `/questionCategories` | `QuestionAnswer*`, `QuestionCategory*` | **KEEP** | Generic. |
 | `/api/v1/reminderNotes`, `/strictRules` | `ReminderNote*`, `StrictRule*` | **KEEP** | Generic. Confirm content is not trading rules. |
 
@@ -89,7 +89,8 @@ against a scratch DB).
 | `goals` | `/goals` | **REFRAME** (`TRADE_QUALITY` category) |
 | `decisions` | `/decisions` | **REFRAME** (`TRADING` category) |
 | `planner` | `/planner` | **REFRAME** (example copy) |
-| `expenses`, `expenseReasons`, `questionsAnswers`, `reminderNotes`, `strictRules` | various | **KEEP** |
+| `expenses`, `expenseReasons` | various | **HIDE** | Trading expenses and their reason list. |
+| `questionsAnswers`, `reminderNotes`, `strictRules` | various | **KEEP** |
 
 All sub-routes are children of `/`, so one redirect in `GoRouter(redirect: ...)` can cover every hidden path, including
 deep links and web URLs.

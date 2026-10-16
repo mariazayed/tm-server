@@ -79,7 +79,9 @@ INVEST_TEST_DB_URL=jdbc:postgresql://localhost:5432/scratch INVEST_TEST_DB_USER=
 
 Request body: `contributedOn` (`YYYY-MM-DD`), `amountCents`, `shares`, `price`, optional `feeCents`
 and `notes`. Rules: positive amount, shares and price; the date cannot be in the future (judged in
-the settings timezone); `shares` must be within 1% of `amount / price` to allow broker rounding.
+the settings timezone); fractional share counts must be within 1% of `amount / price` to allow
+broker rounding. Whole-share buys may use cash left from earlier contributions; the amount stores
+the new contribution (less its fee), and available cash is tracked across buys.
 
 **Which fund.** A buy belongs to one fund, named by `holdingId` or `ticker` (either one). Left out: an update keeps the
 buy's current fund, and a new buy uses the only fund when there is exactly one; with several funds it is refused with 400 ("Choose

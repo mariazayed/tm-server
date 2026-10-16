@@ -13,4 +13,6 @@ import java.time.LocalDateTime;
 public class ReminderNoteResponse {
     private Long id;
     private String text;
+    private Long categoryId;
+    private String categoryName;
 }
