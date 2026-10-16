@@ -105,7 +105,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
             try {
                 return callOnce(candidate, systemPrompt, userPrompt, options);
             } catch (Retryable e) {
-                last = new LlmException(e.getMessage());
+                last = new LlmException(e.getMessage(), e.kind);
             }
         }
         throw last;
@@ -126,8 +126,11 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     /** Rate limited or a provider-side failure: worth trying the next model. */
     private static final class Retryable extends RuntimeException {
-        Retryable(String message) {
+        final LlmException.Kind kind;
+
+        Retryable(String message, LlmException.Kind kind) {
             super(message);
+            this.kind = kind;
         }
     }
 
@@ -143,18 +146,23 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         HttpResponse<String> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (java.net.http.HttpTimeoutException e) {
+            throw new Retryable("Request to the AI provider timed out", LlmException.Kind.TIMEOUT);
         } catch (java.io.IOException e) {
-            throw new Retryable("Request to the AI provider failed: " + e.getMessage());
+            throw new Retryable("Request to the AI provider failed: " + e.getMessage(), LlmException.Kind.UNREACHABLE);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LlmException("Request to the AI provider was interrupted", e);
         }
         int code = response.statusCode();
         if (code == 429 || code >= 500) {
-            throw new Retryable("AI provider returned HTTP " + code + ": " + response.body());
+            throw new Retryable("AI provider returned HTTP " + code + ": " + response.body(),
+                    code == 429 ? LlmException.Kind.RATE_LIMITED : LlmException.Kind.OTHER);
         }
         if (code < 200 || code >= 300) {
-            throw new LlmException("AI provider returned HTTP " + code + ": " + response.body());
+            LlmException.Kind kind = code == 404 ? LlmException.Kind.MODEL_NOT_FOUND
+                    : code == 401 || code == 403 ? LlmException.Kind.REJECTED_KEY : LlmException.Kind.OTHER;
+            throw new LlmException("AI provider returned HTTP " + code + ": " + response.body(), kind);
         }
         return parse(response.body());
     }

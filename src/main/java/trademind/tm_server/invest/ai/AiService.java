@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import trademind.tm_server.ai.LlmClient;
+import trademind.tm_server.ai.LlmException;
 import trademind.tm_server.ai.LlmResult;
 
 import java.time.Clock;
@@ -106,9 +107,10 @@ public class AiService {
             result = llm.completeWithUsage(systemPrompt, userPrompt, feature.options());
         } catch (RuntimeException e) {
             // Class name only: the message can carry the provider's response body.
-            log.warn("ai call failed feature={} promptChars={} ms={} error={}", feature, chars, millisSince(started),
-                    e.getClass().getSimpleName());
-            throw new AiUpstreamException();
+            LlmException.Kind kind = e instanceof LlmException le ? le.kind() : LlmException.Kind.OTHER;
+            log.warn("ai call failed feature={} promptChars={} ms={} error={} kind={}", feature, chars,
+                    millisSince(started), e.getClass().getSimpleName(), kind);
+            throw new AiUpstreamException(kind);
         }
         if (result.inputTokens() != null || result.outputTokens() != null) {
             try {

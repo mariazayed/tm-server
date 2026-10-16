@@ -56,7 +56,10 @@ public class InvestExceptionHandler {
     /** A failed model call. The provider's error is never passed on: it can echo what was sent. */
     @ExceptionHandler(AiUpstreamException.class)
     public ResponseEntity<ErrorResponse> aiUpstream(AiUpstreamException ex, HttpServletRequest request) {
-        return error(HttpStatus.BAD_GATEWAY, "The AI service did not answer. Try again in a moment.", request);
+        String hint = ex.hint();
+        return error(HttpStatus.BAD_GATEWAY,
+                hint.isEmpty() ? "The AI service did not answer. Try again in a moment."
+                        : "The AI service did not answer. " + hint, request);
     }
 
     /** Two unusable replies in a row; the reply itself is never shown. */

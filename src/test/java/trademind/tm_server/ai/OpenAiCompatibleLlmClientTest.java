@@ -127,4 +127,49 @@ class OpenAiCompatibleLlmClientTest {
         ReflectionTestUtils.setField(c, "apiKey", "");
         assertThrows(LlmException.class, () -> c.complete("s", "u"));
     }
+
+    private LlmException.Kind kindOf(OpenAiCompatibleLlmClient c) {
+        return assertThrows(LlmException.class, () -> c.complete("s", "u")).kind();
+    }
+
+    @Test
+    void aMissingModelIsReportedAsSuch() {
+        statuses = List.of(404);
+        assertEquals(LlmException.Kind.MODEL_NOT_FOUND, kindOf(client("")));
+    }
+
+    @Test
+    void aRejectedKeyIsReportedAsSuch() {
+        statuses = List.of(401);
+        assertEquals(LlmException.Kind.REJECTED_KEY, kindOf(client("")));
+    }
+
+    @Test
+    void rateLimitingIsReportedAsSuch() {
+        statuses = List.of(429);
+        assertEquals(LlmException.Kind.RATE_LIMITED, kindOf(client("")));
+    }
+
+    @Test
+    void nothingListeningIsReportedAsUnreachable() {
+        OpenAiCompatibleLlmClient c = client("");
+        server.stop(0); // the port is now closed
+        assertEquals(LlmException.Kind.UNREACHABLE, kindOf(c));
+    }
+
+    @Test
+    void aSlowModelIsReportedAsATimeout() throws Exception {
+        server.removeContext("/v1/chat/completions");
+        server.createContext("/v1/chat/completions", ex -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ignored) {
+            }
+            ex.sendResponseHeaders(200, -1);
+            ex.close();
+        });
+        OpenAiCompatibleLlmClient c = client("");
+        ReflectionTestUtils.setField(c, "timeoutSeconds", 1);
+        assertEquals(LlmException.Kind.TIMEOUT, kindOf(c));
+    }
 }

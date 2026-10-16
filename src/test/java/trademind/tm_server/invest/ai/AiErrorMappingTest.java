@@ -61,6 +61,15 @@ class AiErrorMappingTest {
     }
 
     @Test
+    void anUnreachableProviderSaysSoWithoutAnyProviderText() throws Exception {
+        when(ai.usage()).thenThrow(new AiUpstreamException(trademind.tm_server.ai.LlmException.Kind.UNREACHABLE));
+        mvc.perform(get("/api/v1/invest/ai/usage"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message").value("The AI service did not answer. Could not connect to the AI "
+                        + "provider. If you use Ollama, check that it is running."));
+    }
+
+    @Test
     void anUnusableReplyIs502WithAGenericMessage() throws Exception {
         when(ai.usage()).thenThrow(new AiInvalidReplyException());
         mvc.perform(get("/api/v1/invest/ai/usage"))
