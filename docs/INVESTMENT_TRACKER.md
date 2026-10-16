@@ -284,6 +284,12 @@ or logged, because it can echo the request. Logs hold the feature, sizes, timing
 prompts or replies. Because the API has no login, these caps are the only thing limiting spend; keep the server
 on a trusted network.
 
+**Free models.** The default provider is Anthropic. Set `ai.provider.type=openai` to use any OpenAI-compatible server
+instead: Google Gemini's free tier, Groq, OpenRouter's `:free` models, or Ollama on your own machine. Also set
+`ai.provider.base-url`, `ai.provider.api-key` (any word for Ollama) and `ai.provider.model`;
+`ai.provider.fallback-models` (comma separated) are tried when the first model is rate limited or the provider fails.
+Ready-made blocks are in `application-local.properties.example`. Keep `ai.limits.*` at or below the provider's free quota.
+
 **The key lives on the server only.** It is the same slot the older trade-suggestion feature uses:
 `ai.provider.api-key` and `ai.provider.model` in the untracked `application-local.properties`, or the
 environment variables `AI_PROVIDER_API_KEY` and `AI_PROVIDER_MODEL`. Nothing returns it, nothing logs it,

@@ -12,8 +12,33 @@ spring.datasource.password=your_password_here
 # intentionally not hardcoded here since model ids change over time).
 # ai.provider.api-key=sk-ant-...
 # ai.provider.model=
-# Master switch for the investing AI features (off by default); see application.properties for the limits.
+# Master switch for the investing AI features; see application.properties for the limits.
 # ai.enabled=true
+
+# FREE models instead of Anthropic: use any OpenAI-compatible server. Pick ONE block.
+# ai.provider.type=openai
+#
+# Google Gemini free tier (key from aistudio.google.com):
+# ai.provider.base-url=https://generativelanguage.googleapis.com/v1beta/openai
+# ai.provider.api-key=<gemini key>
+# ai.provider.model=gemini-2.5-flash
+# ai.provider.fallback-models=gemini-2.5-flash-lite
+#
+# Groq free tier (key from console.groq.com):
+# ai.provider.base-url=https://api.groq.com/openai/v1
+# ai.provider.model=llama-3.3-70b-versatile
+#
+# OpenRouter, models whose id ends in ":free" (key from openrouter.ai):
+# ai.provider.base-url=https://openrouter.ai/api/v1
+# ai.provider.model=<an id ending in :free>
+#
+# Ollama on this machine (no account, nothing leaves it); the key can be any word:
+# ai.provider.base-url=http://localhost:11434/v1
+# ai.provider.api-key=ollama
+# ai.provider.model=qwen2.5:7b-instruct
+#
+# With a free tier the limit is the provider's (a few requests a minute, some hundreds a day),
+# so keep ai.limits.per-minute and ai.limits.daily-total at or below what it allows.
 
 # The server has no login. Uncomment to accept connections from this machine only
 # (see docs/EXPOSING_THE_SERVER.md before exposing it anywhere else).

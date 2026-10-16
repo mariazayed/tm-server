@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -32,6 +33,7 @@ import java.time.Duration;
  *   ai.provider.timeout-seconds -- defaults to 60
  */
 @Service
+@ConditionalOnProperty(name = "ai.provider.type", havingValue = "anthropic", matchIfMissing = true)
 public class AnthropicLlmClient implements LlmClient {
 
     private static final String ANTHROPIC_VERSION = "2023-06-01";
