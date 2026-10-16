@@ -286,13 +286,13 @@ or logged, because it can echo the request. Logs hold the feature, sizes, timing
 prompts or replies. Because the API has no login, these caps are the only thing limiting spend; keep the server
 on a trusted network.
 
-**Free models.** The default provider is Anthropic. Set `ai.provider.type=openai` to use any OpenAI-compatible server
+**Free models.** Set `ai.provider.type=openai` to use any OpenAI-compatible server
 instead: Google Gemini's free tier, Groq, OpenRouter's `:free` models, or Ollama on your own machine. Also set
 `ai.provider.base-url`, `ai.provider.api-key` (any word for Ollama) and `ai.provider.model`;
 `ai.provider.fallback-models` (comma separated) are tried when the first model is rate limited or the provider fails.
-**Ollama (local, free):** install Ollama, run `ollama pull qwen2.5:7b-instruct`, and start the server with
-`SPRING_PROFILES_ACTIVE=local,ollama` (`application-ollama.properties`). No key or account is needed, the base URL
-defaults to `http://localhost:11434/v1`, and the timeout to 180 seconds. Ready-made blocks are in `application-local.properties.example`. Keep `ai.limits.*` at or below the provider's free quota.
+**Ollama (local, free) is the default.** Install Ollama and run `ollama pull qwen2.5:7b-instruct`; nothing else to
+configure. The base URL is `http://localhost:11434/v1`, no key is needed, and the timeout is 180 seconds. To use Anthropic
+set `ai.provider.type=anthropic` with its key and model in `application-local.properties`. Ready-made blocks are in `application-local.properties.example`. Keep `ai.limits.*` at or below the provider's free quota.
 
 **The key lives on the server only.** It is the same slot the older trade-suggestion feature uses:
 `ai.provider.api-key` and `ai.provider.model` in the untracked `application-local.properties`, or the

@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 
-/** The ollama profile file alone (no database) makes AI ready with the compatible client and no key. */
-class OllamaProfileTest {
+/** application.properties alone (no profile, no database) makes AI ready with Ollama with the compatible client and no key. */
+class OllamaDefaultTest {
 
     @Configuration
     @EnableConfigurationProperties(AiProperties.class)
@@ -33,17 +33,12 @@ class OllamaProfileTest {
             .withUserConfiguration(Config.class);
 
     @Test
-    void profileMakesAiReady() {
-        runner.withPropertyValues("spring.profiles.active=ollama").run(ctx -> {
+    void ollamaIsTheDefault() {
+        runner.run(ctx -> {
             AiService ai = ctx.getBean(AiService.class);
             assertEquals(true, ai.status().configured(), ai.status().reason());
             assertEquals("qwen2.5:7b-instruct", ai.status().model());
             assertInstanceOf(OpenAiCompatibleLlmClient.class, ctx.getBean(LlmClient.class));
         });
-    }
-
-    @Test
-    void withoutTheProfileNothingIsConfigured() {
-        runner.run(ctx -> assertEquals(false, ctx.getBean(AiService.class).status().configured()));
     }
 }

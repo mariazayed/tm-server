@@ -62,6 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 + "classpath:db/migration/V30__create_invest_holdings.sql",
         "ai.enabled=true",
         "ai.limits.per-minute=1000",
+        "ai.limits.daily-total=60",
         "ai.provider.api-key=test-key",
         "ai.provider.model=claude-test"
 })

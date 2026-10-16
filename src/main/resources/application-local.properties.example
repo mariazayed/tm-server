@@ -5,6 +5,7 @@
 spring.datasource.username=postgres
 spring.datasource.password=your_password_here
 
+# Anthropic (paid): set ai.provider.type=anthropic and fill in the key and model below.
 # AI suggestions (Phase 5) -- uncomment and fill in to enable POST
 # /api/v1/trade/{id}/suggest. Get an API key from console.anthropic.com;
 # set the model to whatever current Claude model your key has access to
@@ -15,7 +16,8 @@ spring.datasource.password=your_password_here
 # Master switch for the investing AI features; see application.properties for the limits.
 # ai.enabled=true
 
-# FREE models instead of Anthropic: use any OpenAI-compatible server. Pick ONE block.
+# The default is a local Ollama (see application.properties). To use something else, pick ONE block.
+# Other free OpenAI-compatible servers use ai.provider.type=openai; Anthropic uses ai.provider.type=anthropic.
 # ai.provider.type=openai
 #
 # Google Gemini free tier (key from aistudio.google.com):
@@ -32,10 +34,8 @@ spring.datasource.password=your_password_here
 # ai.provider.base-url=https://openrouter.ai/api/v1
 # ai.provider.model=<an id ending in :free>
 #
-# Ollama on this machine (no account, nothing leaves it); the key can be any word:
-# ai.provider.base-url=http://localhost:11434/v1
-# ai.provider.api-key=ollama
-# ai.provider.model=qwen2.5:7b-instruct
+# Ollama on this machine is already the default; change the model only if you pulled another:
+# ai.provider.model=llama3.1:8b
 #
 # With a free tier the limit is the provider's (a few requests a minute, some hundreds a day),
 # so keep ai.limits.per-minute and ai.limits.daily-total at or below what it allows.
