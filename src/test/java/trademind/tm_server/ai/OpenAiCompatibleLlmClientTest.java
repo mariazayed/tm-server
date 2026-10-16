@@ -111,4 +111,20 @@ class OpenAiCompatibleLlmClientTest {
         OpenAiCompatibleLlmClient c = new OpenAiCompatibleLlmClient();
         assertThrows(LlmException.class, () -> c.complete("s", "u"));
     }
+
+    @Test
+    void ollamaNeedsNoKeyAndSendsAPlaceholder() {
+        OpenAiCompatibleLlmClient c = client("");
+        ReflectionTestUtils.setField(c, "type", "ollama");
+        ReflectionTestUtils.setField(c, "apiKey", "");
+        assertEquals("Hi", c.complete("s", "u"));
+        assertEquals("Bearer ollama", auth.get(0));
+    }
+
+    @Test
+    void otherOpenAiServersStillNeedAKey() {
+        OpenAiCompatibleLlmClient c = client("");
+        ReflectionTestUtils.setField(c, "apiKey", "");
+        assertThrows(LlmException.class, () -> c.complete("s", "u"));
+    }
 }

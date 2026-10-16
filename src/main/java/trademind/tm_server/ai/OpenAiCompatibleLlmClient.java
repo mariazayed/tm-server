@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -34,16 +34,23 @@ import java.util.List;
  *                             (HTTP 429) or the provider fails (5xx), which free tiers do often
  * </pre>
  *
+ * {@code ai.provider.type=ollama} is the same client with local defaults: base URL
+ * {@code http://localhost:11434/v1}, no key needed, and a longer timeout because a model on a CPU is slow.
+ * Only {@code ai.provider.model} (for example {@code qwen2.5:7b-instruct}) has to be set.
+ *
  * Uses the JDK HttpClient, like {@link AnthropicLlmClient}, so there is no SDK dependency.
  */
 @Service
-@ConditionalOnProperty(name = "ai.provider.type", havingValue = "openai")
+@ConditionalOnExpression("'${ai.provider.type:anthropic}' == 'openai' or '${ai.provider.type:anthropic}' == 'ollama'")
 public class OpenAiCompatibleLlmClient implements LlmClient {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
             .build();
+
+    @Value("${ai.provider.type:anthropic}")
+    private String type;
 
     @Value("${ai.provider.api-key:}")
     private String apiKey;
@@ -57,8 +64,25 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
     @Value("${ai.provider.base-url:}")
     private String baseUrl;
 
-    @Value("${ai.provider.timeout-seconds:60}")
+    /** 0 means "not set": 60 seconds, or 180 for Ollama. */
+    @Value("${ai.provider.timeout-seconds:0}")
     private int timeoutSeconds;
+
+    private boolean ollama() {
+        return "ollama".equals(type);
+    }
+
+    private String key() {
+        return apiKey != null && !apiKey.isBlank() ? apiKey : (ollama() ? "ollama" : "");
+    }
+
+    private String base() {
+        return baseUrl != null && !baseUrl.isBlank() ? baseUrl : (ollama() ? "http://localhost:11434/v1" : "");
+    }
+
+    private int timeout() {
+        return timeoutSeconds > 0 ? timeoutSeconds : (ollama() ? 180 : 60);
+    }
 
     @Override
     public String complete(String systemPrompt, String userPrompt) {
@@ -67,13 +91,13 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     @Override
     public LlmResult completeWithUsage(String systemPrompt, String userPrompt, LlmOptions options) {
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new LlmException("ai.provider.api-key is not set (any word works for a local Ollama).");
+        if (key().isBlank()) {
+            throw new LlmException("ai.provider.api-key is not set.");
         }
         if (model == null || model.isBlank()) {
             throw new LlmException("ai.provider.model is not set.");
         }
-        if (baseUrl == null || baseUrl.isBlank()) {
+        if (base().isBlank()) {
             throw new LlmException("ai.provider.base-url is not set for ai.provider.type=openai.");
         }
         LlmException last = null;
@@ -109,9 +133,9 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     private LlmResult callOnce(String useModel, String systemPrompt, String userPrompt, LlmOptions options) {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl.replaceAll("/+$", "") + "/chat/completions"))
-                .timeout(Duration.ofSeconds(options.timeoutSeconds() != null ? options.timeoutSeconds() : timeoutSeconds))
-                .header("Authorization", "Bearer " + apiKey)
+                .uri(URI.create(base().replaceAll("/+$", "") + "/chat/completions"))
+                .timeout(Duration.ofSeconds(options.timeoutSeconds() != null ? options.timeoutSeconds() : timeout()))
+                .header("Authorization", "Bearer " + key())
                 .header("content-type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body(useModel, systemPrompt, userPrompt, options)))
                 .build();

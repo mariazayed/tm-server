@@ -3,6 +3,7 @@ package trademind.tm_server.invest.ai;
 import trademind.tm_server.exceptions.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import trademind.tm_server.ai.LlmClient;
@@ -50,13 +51,21 @@ public class AiService {
     private final Object reserveLock = new Object();
 
     public AiService(LlmClient llm, AiUsageStore usageStore, AiProperties properties, Clock clock,
+                     String apiKey, String model) {
+        this(llm, usageStore, properties, clock, apiKey, "anthropic", model);
+    }
+
+    @Autowired
+    public AiService(LlmClient llm, AiUsageStore usageStore, AiProperties properties, Clock clock,
                      @Value("${ai.provider.api-key:}") String apiKey,
+                     @Value("${ai.provider.type:anthropic}") String providerType,
                      @Value("${ai.provider.model:}") String model) {
         this.llm = llm;
         this.usageStore = usageStore;
         this.properties = properties;
         this.clock = clock;
-        this.apiKey = apiKey;
+        // A local Ollama needs no key; the placeholder only lets the "configured" check pass.
+        this.apiKey = (apiKey == null || apiKey.isBlank()) && "ollama".equals(providerType) ? "ollama" : apiKey;
         this.model = model;
         this.minuteLimiter = new AiRateLimiter(properties.limits().perMinute(), Duration.ofMinutes(1), clock);
     }

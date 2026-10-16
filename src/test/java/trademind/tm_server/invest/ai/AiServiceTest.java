@@ -84,6 +84,15 @@ class AiServiceTest {
     }
 
     @Test
+    void ollamaIsConfiguredWithoutAKey() {
+        AiProperties p = new AiProperties(true, new AiProperties.Limits(60, 6, 20_000));
+        AiService ollama = new AiService(llm, store, p, clock, "", "ollama", "qwen2.5:7b-instruct");
+        assertEquals(new AiController.Status(true, "qwen2.5:7b-instruct", null), ollama.status());
+        AiService anthropic = new AiService(llm, store, p, clock, "", "anthropic", "m");
+        assertEquals(false, anthropic.status().configured());
+    }
+
+    @Test
     void switchedOffMeansNothingIsSent() {
         AiService ai = service(false, "k", "m", 60, 6, 20_000);
         AiUnavailableException e = assertThrows(AiUnavailableException.class, () -> ai.call(AiFeature.CHAT, "s", "u"));
